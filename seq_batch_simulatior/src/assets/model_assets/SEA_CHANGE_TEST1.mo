@@ -65,7 +65,7 @@ model SEA_CHANGE_TEST1
       "Sum rated power of existing engines AFTER the current index"
       input Integer currentGenIndex;
       input Integer totalGenCount;            // e.g., 10
-      input Real    engineRatedPower[:] "W";        // size >= totalGenCount
+      input Real    engineRatedPower[:] "W";                        // size >= totalGenCount
         input Boolean engineExist[:]  ;          // size >= totalGenCount
       output Real remainingAvailableGeneratorPower "W";
     protected
@@ -5028,7 +5028,8 @@ if isLast then
       end for;
     end argmin;
 
-    parameter Real minimal_bsfc_percentage = 0.05;
+    parameter Real upper_minimal_bsfc_percentage = 0.05;
+    parameter Real lower_minimal_bsfc_percentage = 0.05;
     parameter Boolean manually_define_bounds = false;
     parameter Real manual_defined_upperBound = 400;
     parameter Real manual_defined_lowerBound = 200;
@@ -5043,7 +5044,8 @@ if isLast then
     parameter Integer n = size(BSFC_Curve_Default, 1);
     parameter Integer nLeft = minIndex;
     parameter Integer nRight = n - minIndex + 1;
-    parameter Real upper_optim_bsfc = min_bsfc*(1 + minimal_bsfc_percentage);
+    parameter Real upper_optim_bsfc = min_bsfc*(1 + upper_minimal_bsfc_percentage);
+    parameter Real lower_optim_bsfc = min_bsfc*(1+ lower_minimal_bsfc_percentage);
     // Syntax, 2 d array slicing 2D_ArrayName[startIndex : steps :endIndex, {firstColumnToBe Sliced, secondColumnToBeSliced}]
     //                                            BSFC_Curve_Default [     minIndex:-1:1,     {2                                    ,                                         1}]
     parameter Real BSFC_Curve_Reverse_Left[nLeft, 2] = BSFC_Curve_Default[minIndex:-1:1, {2, 1}];
@@ -5054,7 +5056,7 @@ if isLast then
     Modelica.Blocks.Tables.CombiTable1Ds table_to_calc_pwr_higher(table = BSFC_Curve_Reverse_Right, smoothness = Modelica.Blocks.Types.Smoothness.LinearSegments, extrapolation = Modelica.Blocks.Types.Extrapolation.HoldLastPoint) annotation(
       Placement(transformation(origin = {10, -8}, extent = {{10, -10}, {-10, 10}}, rotation = -0)));
     Modelica.Blocks.Sources.RealExpression max_optim_bsfc(y = upper_optim_bsfc) annotation(
-      Placement(transformation(origin = {90, 20}, extent = {{10, -10}, {-10, 10}}, rotation = -0)));
+      Placement(transformation(origin = {82, -8}, extent = {{10, -10}, {-10, 10}})));
     Modelica.Blocks.Interfaces.RealOutput pwr_lower_band annotation(
       Placement(transformation(origin = {-110, 10}, extent = {{10, -10}, {-10, 10}}), iconTransformation(origin = {-110, 30}, extent = {{10, -10}, {-10, 10}})));
     Modelica.Blocks.Interfaces.RealOutput pwr_higher_band annotation(
@@ -5062,14 +5064,14 @@ if isLast then
     Modelica.Blocks.Sources.RealExpression realExpressionUpperBound(y = manual_defined_upperBound) annotation(
       Placement(transformation(origin = {-30, 76}, extent = {{10, -10}, {-10, 10}})));
     Modelica.Blocks.Sources.RealExpression realExpressionLowerBound(y = manual_defined_lowerBound) annotation(
-      Placement(transformation(origin = {-28, 58}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
+      Placement(transformation(origin = {-30, 58}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
     Modelica.Blocks.Interfaces.RealOutput pwr_most_effcient annotation(
       Placement(transformation(origin = {-110, -72}, extent = {{10, -10}, {-10, 10}}), iconTransformation(origin = {-110, -48}, extent = {{10, -10}, {-10, 10}}, rotation = -0)));
+  Modelica.Blocks.Sources.RealExpression min_optim_bsfc(y = lower_optim_bsfc) annotation(
+      Placement(transformation(origin = {82, 40}, extent = {{10, -10}, {-10, 10}})));
   equation
-    connect(max_optim_bsfc.y, table_to_calc_pwr_lower.u) annotation(
-      Line(points = {{80, 20}, {40, 20}, {40, 40}, {22, 40}}, color = {0, 0, 127}));
     connect(max_optim_bsfc.y, table_to_calc_pwr_higher.u) annotation(
-      Line(points = {{80, 20}, {42, 20}, {42, -8}, {22, -8}}, color = {0, 0, 127}));
+      Line(points = {{71, -8}, {22, -8}}, color = {0, 0, 127}));
     if manually_define_bounds then
       connect(realExpressionLowerBound.y, pwr_lower_band) annotation(
         Line(points = {{-40, 56}, {-46, 56}, {-46, -30}, {-110, -30}}, color = {0, 0, 127}));
@@ -5085,6 +5087,8 @@ if isLast then
       bsfc_min_out = min_bsfc;
       pwr_most_effcient = power_at_min;
     end if;
+  connect(min_optim_bsfc.y, table_to_calc_pwr_lower.u) annotation(
+      Line(points = {{72, 40}, {22, 40}}, color = {0, 0, 127}));
     annotation(
       Icon(graphics = {Rectangle(fillPattern = FillPattern.Solid, extent = {{-80, 80}, {80, -80}}), Rectangle(origin = {-39, 53}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {-39, 23}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {-39, -7}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {33, -37}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {-39, -63}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {33, 53}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {33, 23}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {33, -7}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {-39, -37}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}}), Rectangle(origin = {33, -63}, lineColor = {0, 0, 255}, fillColor = {255, 255, 255}, fillPattern = FillPattern.Solid, extent = {{-21, 9}, {21, -9}})}));
   end OptimalFuelConsumptionBoundsCalculator_ExternalTable;
@@ -8886,55 +8890,65 @@ if isLast then
   parameter Boolean gen9_is_on = false;
   parameter Boolean gen10_is_on = false;
   /**GENERATOR MANUAL BOUNDS SETUP **/
-  parameter Boolean mCtrl_user_defined_Bounds_diesel_1 = true;
+  parameter Boolean mCtrl_user_defined_Bounds_diesel_1 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_1 = 750;
   parameter Real mCtrl_user_defined_lower_bound_diesel_1 = 400;
   parameter Real mCtrl_user_defined_BSFC_percentage_1 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_1_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_1 = 640;
-  parameter Boolean mCtrl_user_defined_Bounds_diesel_2 = true;
+  parameter Boolean mCtrl_user_defined_Bounds_diesel_2 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_2 = 750;
   parameter Real mCtrl_user_defined_lower_bound_diesel_2 = 400;
   parameter Real mCtrl_user_defined_BSFC_percentage_2 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_2_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_2 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_3 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_3 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_3 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_3 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_3_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_3 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_4 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_4 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_4 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_4 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_4_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_4 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_5 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_5 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_5 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_5 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_5_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_5 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_6 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_6 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_6 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_6 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_6_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_6 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_7 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_7 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_7 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_7 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_7_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_7 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_8 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_8 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_8 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_8 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_8_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_8 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_9 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_9 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_9 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_9 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_9_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_9 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_10 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_10 = 900;
   parameter Real mCtrl_user_defined_lower_bound_diesel_10 = 200;
   parameter Real mCtrl_user_defined_BSFC_percentage_10 = 0.05;
+  parameter Real mCtrl_user_defined_BSFC_percentage_10_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_10 = 640;
   /*Fuel Usage Tracking*/
   Real fuelFlow1;
@@ -9017,31 +9031,35 @@ if isLast then
   Modelica.Blocks.Math.Gain gain1(k = 1000) annotation(
     Placement(transformation(origin = {160, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   // Part Controller
-  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "C:/Users/arksa/Downloads/2024-04_FC_Cardinal_buoy_maintenance Adjusted 85.txt", verboseRead = true, columns = 2:2) annotation(
+  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "C:/Users/NMS08/Desktop/ReCreatedModel/SeqBatchSimulator/seq_batch_simulatior/src/assets/model_assets/2024-04_FC_Cardinal_buoy_maintenance Adjusted Again85.txt", verboseRead = true, columns = 2:2) annotation(
     Placement(transformation(origin = {232, -274}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Sources.RealExpression time_expre2(y = time) annotation(
     Placement(transformation(origin = {306, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
-  SEA_CHANGE_TEST1.IndividualEngineController individualEngineController(controller_gen_1_exist = gen1_is_on, controller_gen_2_exist = gen2_is_on, controller_gen_3_exist = gen3_is_on, controller_gen_4_exist = gen4_is_on, controller_gen_5_exist = gen5_is_on, controller_gen_6_exist = gen6_is_on, controller_gen_7_exist = gen7_is_on, controller_gen_8_exist = gen8_is_on, controller_gen_9_exist = gen9_is_on, controller_gen_10_exist = gen10_is_on, controller_gen_1_idle = generator_P_idle_1, controller_gen_2_idle = generator_P_idle_2, controller_gen_3_idle = generator_P_idle_3, controller_gen_4_idle = generator_P_idle_4, controller_gen_5_idle = generator_P_idle_5, controller_gen_6_idle = generator_P_idle_6, controller_gen_7_idle = generator_P_idle_7, controller_gen_8_idle = generator_P_idle_8, controller_gen_9_idle = generator_P_idle_9, controller_gen_10_idle = generator_P_idle_10, controller_gen_1_rated = generator_P_rat_1, controller_gen_2_rated = generator_P_rat_2, controller_gen_3_rated = generator_P_rat_3, controller_gen_4_rated = generator_P_rat_4, controller_gen_5_rated = generator_P_rat_5, controller_gen_6_rated = generator_P_rat_6, controller_gen_7_rated = generator_P_rat_7, controller_gen_8_rated = generator_P_rat_8, controller_gen_9_rated = generator_P_rat_9, controller_gen_10_rated = generator_P_rat_10, P_controller_rated_battery = battery_P_max) annotation(
+  SEA_CHANGE_TEST1.IndividualEngineController individualEngineController(
+  controller_gen_1_exist = gen1_is_on, 
+  controller_gen_2_exist = gen2_is_on, 
+  controller_gen_3_exist = gen3_is_on, 
+  controller_gen_4_exist = gen4_is_on, controller_gen_5_exist = gen5_is_on, controller_gen_6_exist = gen6_is_on, controller_gen_7_exist = gen7_is_on, controller_gen_8_exist = gen8_is_on, controller_gen_9_exist = gen9_is_on, controller_gen_10_exist = gen10_is_on, controller_gen_1_idle = generator_P_idle_1, controller_gen_2_idle = generator_P_idle_2, controller_gen_3_idle = generator_P_idle_3, controller_gen_4_idle = generator_P_idle_4, controller_gen_5_idle = generator_P_idle_5, controller_gen_6_idle = generator_P_idle_6, controller_gen_7_idle = generator_P_idle_7, controller_gen_8_idle = generator_P_idle_8, controller_gen_9_idle = generator_P_idle_9, controller_gen_10_idle = generator_P_idle_10, controller_gen_1_rated = generator_P_rat_1, controller_gen_2_rated = generator_P_rat_2, controller_gen_3_rated = generator_P_rat_3, controller_gen_4_rated = generator_P_rat_4, controller_gen_5_rated = generator_P_rat_5, controller_gen_6_rated = generator_P_rat_6, controller_gen_7_rated = generator_P_rat_7, controller_gen_8_rated = generator_P_rat_8, controller_gen_9_rated = generator_P_rat_9, controller_gen_10_rated = generator_P_rat_10, P_controller_rated_battery = battery_P_max) annotation(
     Placement(transformation(origin = {-170, 18}, extent = {{-38, -38}, {38, 38}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen1(BSFC_Curve_Default = BSFC_Curve_1, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_1, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_1, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_1, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_1, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_1) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen1(BSFC_Curve_Default = BSFC_Curve_1, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_1, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_1, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_1, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_1,  lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_1_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_1) annotation(
     Placement(transformation(origin = {-514, 270}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen2(BSFC_Curve_Default = BSFC_Curve_2, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_2, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_2, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_2, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_2, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_2) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen2(BSFC_Curve_Default = BSFC_Curve_2, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_2, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_2, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_2, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_2, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_2_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_2) annotation(
     Placement(transformation(origin = {-512, 194}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen3(BSFC_Curve_Default = BSFC_Curve_3, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_3, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_3, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_3, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_3, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_3) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen3(BSFC_Curve_Default = BSFC_Curve_3, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_3, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_3, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_3, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_3, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_3_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_3) annotation(
     Placement(transformation(origin = {-510, 124}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen4(BSFC_Curve_Default = BSFC_Curve_4, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_4, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_4, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_4, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_4, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_4) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen4(BSFC_Curve_Default = BSFC_Curve_4, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_4, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_4, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_4, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_4, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_4_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_4) annotation(
     Placement(transformation(origin = {-510, 74}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen5(BSFC_Curve_Default = BSFC_Curve_5, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_5, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_5, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_5, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_5, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_5) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen5(BSFC_Curve_Default = BSFC_Curve_5, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_5, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_5, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_5, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_5, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_5_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_5) annotation(
     Placement(transformation(origin = {-510, 12}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen6(BSFC_Curve_Default = BSFC_Curve_6, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_6, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_6, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_6, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_6, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_6) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen6(BSFC_Curve_Default = BSFC_Curve_6, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_6, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_6, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_6, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_6, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_6_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_6) annotation(
     Placement(transformation(origin = {-330, 280}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen7(BSFC_Curve_Default = BSFC_Curve_7, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_7, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_7, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_7, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_7, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_7) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen7(BSFC_Curve_Default = BSFC_Curve_7, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_7, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_7, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_7, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_7, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_7_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_7) annotation(
     Placement(transformation(origin = {-328, 214}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen8(BSFC_Curve_Default = BSFC_Curve_8, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_8, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_8, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_8, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_8, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_8) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen8(BSFC_Curve_Default = BSFC_Curve_8, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_8, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_8, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_8, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_8, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_8_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_8) annotation(
     Placement(transformation(origin = {-330, 150}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen9(BSFC_Curve_Default = BSFC_Curve_9, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_9, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_9, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_9, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_9, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_9) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen9(BSFC_Curve_Default = BSFC_Curve_9, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_9, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_9, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_9, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_9, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_9_lower, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_9) annotation(
     Placement(transformation(origin = {-186, 290}, extent = {{10, 10}, {-10, -10}})));
-  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen10(BSFC_Curve_Default = BSFC_Curve_10, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_10, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_10, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_10, minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_10, manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_10) annotation(
+  OptimalFuelConsumptionBoundsCalculator_ExternalTable bsfc_table_gen10(BSFC_Curve_Default = BSFC_Curve_10, manual_defined_lowerBound = mCtrl_user_defined_lower_bound_diesel_10, manual_defined_upperBound = mCtrl_user_defined_upper_bound_diesel_10, manually_define_bounds = mCtrl_user_defined_Bounds_diesel_10, upper_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_10, lower_minimal_bsfc_percentage = mCtrl_user_defined_BSFC_percentage_10_lower,manual_defined_most_effcient_power = mCtrl_user_defined_most_eff_ouput_10) annotation(
     Placement(transformation(origin = {-186, 238}, extent = {{10, 10}, {-10, -10}})));
   Modelica.Blocks.Math.Gain gainDieselUpperBound1(k = 1000) annotation(
     Placement(transformation(origin = {-468, 290}, extent = {{-4, -4}, {4, 4}})));
@@ -9280,7 +9298,7 @@ if isLast then
   Modelica.Blocks.Interaction.Show.RealValue realValueTotalEnergySuppliedIncludingLoss annotation(
     Placement(transformation(origin = {-236, -398}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue contoller_charing_output annotation(
-    Placement(transformation(origin = {8, -374}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {6, -340}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression realExpressionController_P_Charge_1(y = individualEngineController.P_charge_1*battery_P_max) annotation(
     Placement(transformation(origin = {-68, -340}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Math.Division divisionDemandJ2kWh annotation(
@@ -9307,6 +9325,58 @@ if isLast then
     Placement(transformation(origin = {-274, -488}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueTotalEnerguSuppliedIncludingCharging annotation(
     Placement(transformation(origin = {-236, -488}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator dieselUsageIntegrator annotation(
+    Placement(transformation(origin = {-110, -390}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator altFuelUsageIntegrator annotation(
+    Placement(transformation(origin = {-110, -420}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator hydroUsgaeIntegrator annotation(
+    Placement(transformation(origin = {-110, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realTotalDieselUsage annotation(
+    Placement(transformation(origin = {-70, -390}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realTotalAltFuelUsage annotation(
+    Placement(transformation(origin = {-70, -420}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realTotalHydroUsage annotation(
+    Placement(transformation(origin = {-70, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression realExpressionDieUse(
+  y = (
+    (if noEvent(generator_Frho_1 == 846) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_2 == 846) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_3 == 846) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_4 == 846) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_5 == 846) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_6 == 846) and gen6_is_on  then generator6.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_7 == 846) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_8 == 846) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_9 == 846) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_10 == 846) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
+    Placement(transformation(origin = {-170, -390}, extent = {{-10, -10}, {10, 10}})));
+  
+  Modelica.Blocks.Sources.RealExpression realExpressionMethUse(
+  y = (
+  (if noEvent(generator_Frho_1 == 791) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_2 == 791) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_3 == 791) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_4 == 791) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_5 == 791) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_6 == 791) and gen6_is_on then generator6.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_7 == 791) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_8 == 791) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_9 == 791) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_10 == 791) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
+    Placement(transformation(origin = {-170, -420}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression realExpressionHydroUse(
+  y = (
+  (if noEvent(generator_Frho_1 == 1) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_2 == 1) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_3 == 1) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_4 == 1) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_5 == 1) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_6 == 1) and gen6_is_on then generator6.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_7 == 1) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_8 == 1) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_9 == 1) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_10 == 1) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
+    Placement(transformation(origin = {-170, -450}, extent = {{-10, -10}, {10, 10}})));
 initial equation
   fuelUsage1 = 0;
   fuelUsage2 = 0;
@@ -9642,7 +9712,7 @@ equation
   connect(TotalEngergy.y, integratorTotaEnergy.u) annotation(
     Line(points = {{-365, -398}, {-348, -398}}, color = {0, 0, 127}));
   connect(realExpressionController_P_Charge_1.y, contoller_charing_output.numberPort) annotation(
-    Line(points = {{-57, -340}, {-32, -340}, {-32, -374}, {-5, -374}}, color = {0, 0, 127}));
+    Line(points = {{-57, -340}, {-5.5, -340}}, color = {0, 0, 127}));
   connect(integratorDemand.y, divisionDemandJ2kWh.u1) annotation(
     Line(points = {{-325, -318}, {-310, -318}, {-310, -312}, {-288, -312}}, color = {0, 0, 127}));
   connect(integratorSurplus.y, divisionSurplusJ2kWh.u1) annotation(
@@ -9677,6 +9747,18 @@ equation
     Line(points = {{-263, -488}, {-248, -488}}, color = {0, 0, 127}));
   connect(realExpressionJ2kWh.y, division.u2) annotation(
     Line(points = {{-308, -430}, {-308, -494}, {-286, -494}}, color = {0, 0, 127}));
+  connect(dieselUsageIntegrator.y, realTotalDieselUsage.numberPort) annotation(
+    Line(points = {{-98, -390}, {-82, -390}}, color = {0, 0, 127}));
+  connect(altFuelUsageIntegrator.y, realTotalAltFuelUsage.numberPort) annotation(
+    Line(points = {{-98, -420}, {-82, -420}}, color = {0, 0, 127}));
+  connect(hydroUsgaeIntegrator.y, realTotalHydroUsage.numberPort) annotation(
+    Line(points = {{-98, -450}, {-82, -450}}, color = {0, 0, 127}));
+  connect(realExpressionDieUse.y, dieselUsageIntegrator.u) annotation(
+    Line(points = {{-158, -390}, {-122, -390}}, color = {0, 0, 127}));
+  connect(realExpressionMethUse.y, altFuelUsageIntegrator.u) annotation(
+    Line(points = {{-158, -420}, {-122, -420}}, color = {0, 0, 127}));
+  connect(realExpressionHydroUse.y, hydroUsgaeIntegrator.u) annotation(
+    Line(points = {{-158, -450}, {-122, -450}}, color = {0, 0, 127}));
   annotation(
     Icon(graphics = {Rectangle(origin = {40, -40}, fillColor = {0, 170, 255}, fillPattern = FillPattern.HorizontalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {40, 40}, fillColor = {85, 85, 255}, fillPattern = FillPattern.VerticalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {-40, -40}, fillColor = {85, 85, 255}, fillPattern = FillPattern.VerticalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {40, -40}, fillColor = {0, 170, 255}, fillPattern = FillPattern.HorizontalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {-40, 40}, fillColor = {0, 170, 255}, fillPattern = FillPattern.HorizontalCylinder, extent = {{-40, 40}, {40, -40}})}),
     uses(Modelica(version = "4.0.0")),
