@@ -1,0 +1,32 @@
+[project]
+name = "omserver"
+version = "0.1.0"
+description = "Server backend providing an API to access OpenModelica simulations."
+authors = [
+    {name = "Matthew Taylor", email = "m.taylor@ncl-marine.com"},
+]
+dependencies = [
+    "flask>=3.0.3",
+    "numpy>=2.2.1",
+    "zmq>=0.0.0",
+    "flask-cors>=6.0.1",
+    "openpyxl>=3.1.5",
+]
+requires-python = ">=3.12"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "pytest>=8.2.2",
+    "yapf>=0.40.2",
+    "coverage>=7.5.3",
+]

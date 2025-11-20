@@ -1,0 +1,37 @@
+pathway_name,lcv_mj_per_g,co2_eq_wtt_gco2eq_per_mj,cf_co2_gco2_per_gfuel,cf_ch4_gch4_per_gfuel,cf_n2o_gn2o_per_gfuel,c_slip_percent,e_value,epsilon_sv
+HFO (Grades RME to RMK),0.0405,13.5,3.114,0.00005,0.00018,0,,
+LFO (Grades RMA to RMD),0.041,13.2,3.151,0.00005,0.00018,0,,
+MDO MGO (Grades DMX to DMB),0.0427,14.4,3.206,0.00005,0.00018,0,,
+LNG / LNG Otto (Dual Fuel Medium Speed),0.0491,18.5,2.75,0,0.00011,0.031,,
+LNG / LNG Otto (Dual Fuel Slow Speed),0.0491,18.5,2.75,0,0.00011,0.017,,
+LNG / LNG Diesel (Dual Fuel Slow Speed),0.0491,18.5,2.75,0,0.00011,0.002,,
+LNG / LBSI,0.0491,18.5,2.75,0,0.00011,0.026,,
+LNG 0%,0.0491,18.5,2.75,0,0.00011,0,,
+Ethane,0.0464,18.5,2.927,0.00005,0.00018,0,,
+LPG - Butane,0.046,7.8,3.03,0.00005,0.00018,0,,
+LPG - Propane,0.046,7.8,3,0.00005,0.00018,0,,
+H2 (Natural Gas) / Fuel Cells,0.12,132,0,0,0,0,,
+H2 (Natural Gas) / ICE,0.12,132,0,0,0.00018,0,,
+NH3 (Natural Gas) / Fuel Cells,0.0186,121,0,0.00005,0.00018,0,,
+NH3 (Natural Gas) / ICE,0.018,121,0,0.00005,0.00018,0,,
+Methanol (Natural Gas),0.0199,31.3,1.375,0.00005,0.00018,0,,
+Bio-ethanol (Wheat Straw),0.027,-55.15185,1.913,0.00005,0.00018,0,15.7,
+Bio-diesel (Waste Cooking Oil),0.037,-61.69459,2.834,0.00005,0.00018,0,14.9,
+Hydrotreated Vegetable Oil (Waste Cooking Oil),0.044,-54.79545,3.115,0.00005,0.00018,0,16,
+Liquefied Biomethane (Bio-Waste) / Otto (Dual Fuel Medium Speed),0.05,-35.83,2.75,0,0.00011,0.031,19.17,
+Liquefied Biomethane / Otto (Dual Fuel Slow Speed),0.05,-35.83,2.75,0,0.00011,0.017,19.17,
+Liquefied Biomethane / Diesel (Dual Fuels),0.05,-35.83,2.75,0,0.00011,0.002,19.17,
+Liquefied Biomethane / LBSI,0.05,-35.83,2.75,0,0.00011,0.026,19.17,
+Bio-methanol,0.02,-58.35,1.375,0.00005,0.00018,0,10.4,
+Other Production Pathways,0.037,-69.18919,3.115,0.00005,0.00018,0,15,
+e-diesel,0.0427,-63.2,3.206,0.00005,0.00018,0,10,73.2
+e-methanol E10,0.0199,-58.9,1.375,0.00005,0.00018,0,10,68.9
+e-methanol E5,0.0199,-63.9,1.375,0.00005,0.00018,0,10,68.9
+e-LNG/Otto (Dual Fuel Medium Speed),0.0491,-46.2,2.75,0,0.00011,0.031,10,56.2
+e-LNG/Otto (Dual Fuel Slow Speed),0.0491,-46.2,2.75,0,0.00011,0.017,10,56.2
+e-LNG/Diesel (Dual Fuel Slow Speed),0.0491,-46.2,2.75,0,0.00011,0.002,10,56.2
+e-LNG LBSI,0.0491,-46.2,2.75,0,0.00011,0.026,10,56.2
+e-H2 Fuel Cells,0.12,10,0,0,0,0,10,0
+e-H2 / ICE,0.12,10,0,0,0.00018,0,10,0
+e-NH3 / Fuel Cells,0.0186,10,0,0.00005,0.00018,0,10,0
+e-NH3 / ICE,0.0186,10,0,0.00005,0.00018,0,10,0

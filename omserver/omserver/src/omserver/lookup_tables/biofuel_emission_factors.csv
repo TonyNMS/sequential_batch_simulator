@@ -1,0 +1,36 @@
+pathway_name,ghg_emissions_saving_typical_value,ghg_emissions_saving_default_value
+sugar beet ethanol (no biogas from slop natural gas as process fuel in conventional boiler),67,59
+sugar beet ethanol (with biogas from slop natural gas as process fuel in conventional boiler),77,73
+sugar beet ethanol (no biogas from slop natural gas as process fuel in CHP plant),73,68
+sugar beet ethanol (with biogas from slop natural gas as process fuel in CHP plant),79,76
+sugar beet ethanol (no biogas from slop lignite as process fuel in CHP plant),58,47
+sugar beet ethanol (with biogas from slop lignite as process fuel in CHP plant),71,64
+corn (maize) ethanol (natural gas as process fuel in conventional boiler),48,40
+corn (maize) ethanol (natural gas as process fuel in CHP plant),55,48
+corn (maize) ethanol (lignite as process fuel in CHP plant),40,28
+corn (maize) ethanol (forest residues as process fuel in CHP plant),69,68
+other cereals excluding maize ethanol (natural gas as process fuel in conventional boiler),47,38
+other cereals excluding maize ethanol (natural gas as process fuel in CHP plant),53,46
+other cereals excluding maize ethanol (lignite as process fuel in CHP plant),37,24
+other cereals excluding maize ethanol (forest residues as process fuel in CHP plant),67,67
+sugar cane ethanol,70,70
+rape seed biodiesel,52,47
+sunflower biodiesel,57,52
+soybean biodiesel,55,50
+palm oil biodiesel (open effluent pond),33,20
+palm oil biodiesel (process with methane capture at oil mill),51,45
+waste cooking oil biodiesel,88,84
+animal fats from rendering biodiesel,84,78
+hydrotreated vegetable oil from rape seed,51,47
+hydrotreated vegetable oil from sunflower,58,54
+hydrotreated vegetable oil from soybean,55,51
+hydrotreated vegetable oil from palm oil (open effluent pond),34,22
+hydrotreated vegetable oil from palm oil (process with methane capture at oil mill),53,49
+hydrotreated oil from waste cooking oil,87,83
+hydrotreated oil from animal fats from rendering,83,77
+pure vegetable oil from rape seed,59,57
+pure vegetable oil from sunflower,65,64
+pure vegetable oil from soybean,63,61
+pure vegetable oil from palm oil (open effluent pond),40,30
+pure vegetable oil from palm oil (process with methane capture at oil mill),59,57
+pure oil from waste cooking oil,98,98 
