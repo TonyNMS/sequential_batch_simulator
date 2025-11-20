@@ -16,7 +16,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from .OMCConnection import OMCConnection
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
-from omserver.ExcelGenerator import ExcelGenerato
+from omserver.ExcelGenerator import ExcelGenerator
 bp = Blueprint("seq_model", __name__, url_prefix="/seq_model")
 CORS(bp)
 PROGRESS = {
