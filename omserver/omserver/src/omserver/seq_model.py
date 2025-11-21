@@ -206,13 +206,13 @@ def simulate_batch():
                 gen1_type_abb = "D" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 1") or {}).get("engine_fuel_type", "None")=="FC" else "None"
                 gen2_type_abb = "D" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 2") or {}).get("engine_fuel_type", "None")=="FC" else "None"
                 gen3_type_abb = "D" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 3") or {}).get("engine_fuel_type", "None")=="FC" else "None"
-                battery_power =  f"{(config.get("battery") or {}).get("battery_max_charge_power", "None") * battery_count}" if config.get("battery_count", 0) >= 1 else 0
+                battery_power =  f"{(config.get("battery") or {}).get("battery_max_charge_power", "None") * battery_count * (1/1000)}" if config.get("battery_count", 0) >= 1 else 0
                 gen1_power_abb = f"{(config.get("slot 1") or {}).get("engine_p_max", "None")}" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") != "None" else 0
                 gen2_power_abb = f"{(config.get("slot 2") or {}).get("engine_p_max", "None")}" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") != "None" else 0   
                 gen3_power_abb = f"{(config.get("slot 3") or {}).get("engine_p_max", "None")}" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") != "None" else 0
                 
-                simName = f"G1_{gen1_type_abb}_{gen1_power_abb}:G2_{gen2_type_abb}_{gen2_power_abb}:G3_{gen3_type_abb}_{gen3_power_abb}:B_{battery_power}"
-                
+               
+                simName = f"G1_{gen1_type_abb + gen1_power_abb if (config.get("slot 1") or {}).get("engine_fuel_type", "None") != "None" else  0}:G2_{gen2_type_abb + gen2_power_abb if (config.get("slot 2") or {}).get("engine_fuel_type", "None") != "None" else 0}:G3_{gen3_type_abb + gen3_power_abb if (config.get("slot 3") or {}).get("engine_fuel_type", "None") != "None" else 0}+B_{battery_power}" 
                 # Create power train sequence description
                 sequence_description = f"Gen1:[{slot1_engine}] → Gen2:[{slot2_engine}] → Gen3:[{slot3_engine}] + Batt:[{battery_count}x{battery_name}]"
                 
@@ -257,7 +257,7 @@ def simulate_batch():
             excel_filename= excel_generator.export_batch_to_excel()
             print(f" Excel file created: {excel_filename}")
         except Exception as e:
-            print(f"⚠ Excel export failed: {e}")
+            print(f"Excel export failed: {e}")
         
         avalible_batches = []
         return jsonify({

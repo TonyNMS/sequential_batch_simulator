@@ -53,7 +53,7 @@ class ExcelGenerator:
         
         return filename
     
-    def _create_batch_summary_sheet(ws, batch_data):
+    def _create_batch_summary_sheet(self, ws, batch_data):
         """Create the batch summary sheet with basic batch information."""
         ws.append(["Batch Simulation Summary"])
         ws.append([])  # Empty row
@@ -69,7 +69,7 @@ class ExcelGenerator:
         for col in range(1, 3):
             ws.column_dimensions[get_column_letter(col)].width = 25
     
-    def _create_iterations_overview_sheet(ws, batch_data):
+    def _create_iterations_overview_sheet(self,ws, batch_data):
         """Create the iterations overview sheet with summary of all iterations."""
         iterations = batch_data.get("batch_sim_res_collection", [])
         
@@ -92,6 +92,9 @@ class ExcelGenerator:
             "Total Energy Demand (kWh)",
             "Total Energy Supplied (kWh)",
             "Total Energy Wasted (kWh)",
+            "Energy Balance Check",
+            "Wasted Energy Significance Check",
+            "Limitation Check",
             "CO2 Emission (Ton)",
             "Penalty (EUR)"
         ]
@@ -102,9 +105,11 @@ class ExcelGenerator:
             sime_name = iteration.get("sim_name", "N/A")
             sequence = iteration.get("sequence", "N/A")
             opt_zone = iteration.get("optimalZone", [0, 0, 0, 0, 0, 0])
-            
+            energy_balance = "True" if iteration.get("Total Energy Wasted (kWh)") == 0 else "False"
+            wastered_energy_significance_check = "True" if iteration.get("Total Energy Wasted (kWh)") >  10  else "False"
+            limitation_check  = "Use Less Engine" if iteration.get("Total Energy Wasted (kWh)") >  10 else "Use More Battery" if  iteration.get("Total Energy Wasted (kWh)") < -10 else "None"
             # Parse sequence to extract generator names
-            gen_names = _parse_generator_names_from_sequence(sequence)
+            gen_names =self._parse_generator_names_from_sequence(sequence)
             
             row = [
                 iteration.get("iteration_id", "N/A"),
@@ -118,6 +123,9 @@ class ExcelGenerator:
                 iteration.get("Total Energy Deamand (kWh)", 0),
                 iteration.get("Total Energy Supplied (kWh)", 0),
                 iteration.get("Total Energy Wasted (kWh)", 0),
+                energy_balance,
+                wastered_energy_significance_check,
+                limitation_check,
                 iteration.get("CO2_emission (Ton)", 0),
                 iteration.get("penalty (EUR)", 0)
             ]
@@ -127,7 +135,7 @@ class ExcelGenerator:
         for col in range(1, len(headers) + 1):
             ws.column_dimensions[get_column_letter(col)].width = 18
     
-    def _generate_iteration_sheet_name(iteration, idx):
+    def _generate_iteration_sheet_name(self, iteration, idx):
         """Generate a unique sheet name for an iteration (max 31 characters)."""
         iter_id = iteration.get("iteration_id", idx)
         
@@ -155,7 +163,7 @@ class ExcelGenerator:
         
         return sheet_name
     
-    def _create_iteration_detail_sheet(ws, iteration):
+    def _create_iteration_detail_sheet(self, ws, iteration):
         """Create detailed sheet for a single iteration."""
         # Section 1: Basic Information
         ws.append(["Iteration Details"])
@@ -195,6 +203,7 @@ class ExcelGenerator:
         ws.append(["Time Series Data"])
         ws.append([])
         
+
         # Headers for time series
         time_series_headers = [
             "Time (h)",
@@ -206,7 +215,11 @@ class ExcelGenerator:
             "Battery Discharge (KW)",
             "Battery Charge (KW)",
             "Wasted Power (KW)",
-            "Battery Measured Power (kW)"
+            "Battery Measured Power (kW)",
+            "Inefficient Performance (KW)",
+            "Under Supply (KW)",
+            "Power Balance Check",
+            "Significant Check?",
         ]
         ws.append(time_series_headers)
         
@@ -221,7 +234,11 @@ class ExcelGenerator:
         battery_charge = iteration.get("battery_charge (KW)", [])
         wasted_power = iteration.get("Wasted Power (kW)", [])
         battery_measured = iteration.get("battery_measured_power (kW)", [])
-        
+        over_supply =  [w if w > 0 else 0 for w in wasted_power]
+        under_supply = [w if w < 0 else 0 for w in wasted_power]
+        power_balance_check = ["True" if w == 0 else "False" for w in wasted_power]
+        signicant_check = ["True" if abs(w) > 5 else "False" for w in wasted_power]
+    
         # Write time series data
         max_len = max(len(time), len(power_demand), len(gen1_power))
         for i in range(max_len):
@@ -235,7 +252,11 @@ class ExcelGenerator:
                 battery_discharge[i] if i < len(battery_discharge) else "",
                 battery_charge[i] if i < len(battery_charge) else "",
                 wasted_power[i] if i < len(wasted_power) else "",
-                battery_measured[i] if i < len(battery_measured) else ""
+                battery_measured[i] if i < len(battery_measured) else "",
+                over_supply[i] if i< len(over_supply) else "",
+                under_supply[i] if i< len(under_supply) else "",
+                power_balance_check[i] if i< len(power_balance_check) else "",
+                signicant_check[i] if i <len(signicant_check) else "",
             ]
             ws.append(row)
         
@@ -243,7 +264,8 @@ class ExcelGenerator:
         for col in range(1, len(time_series_headers) + 1):
             ws.column_dimensions[get_column_letter(col)].width = 20
     
-    def _sanitize_filename(filename):
+    def _sanitize_filename(self, filename):
+
         """Sanitize filename for filesystem compatibility."""
         # Remove invalid characters
         invalid_chars = '<>:"/\\|?*'
@@ -258,6 +280,21 @@ class ExcelGenerator:
             filename = filename[:200]
         
         return filename 
+    def _parse_generator_names_from_sequence(self, sequence):
+        """Extract generator names from sequence string."""
+        gen_names = ["None", "None", "None"]
+        
+        # Example sequence: "Gen1:[Fortuna Crane Engine] → Gen2:[...] → Gen3:[...] + Batt:[...]"
+        try:
+            parts = sequence.split("→")
+            for i, part in enumerate(parts[:3]):  # Only first 3 generators
+                if "[" in part and "]" in part:
+                    name = part.split("[")[1].split("]")[0].strip()
+                    gen_names[i] = name
+        except:
+            pass
+        
+        return gen_names
 
     
     
