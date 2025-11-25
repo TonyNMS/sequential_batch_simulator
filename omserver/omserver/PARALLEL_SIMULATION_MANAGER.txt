@@ -1,0 +1,400 @@
+================================================================================
+PROPOSED: ParallelSimulationManager CLASS
+================================================================================
+
+This class manages parallel OMC simulations with proper port assignment and
+resource management.
+
+================================================================================
+CLASS IMPLEMENTATION
+================================================================================
+
+```python
+import os
+import socket
+import time
+from typing import Optional, Dict
+from multiprocessing import Manager, Lock
+from pathlib import Path
+
+
+class ParallelSimulationManager:
+    """
+    Manages parallel OMC simulations with port assignment and resource tracking.
+    
+    This class ensures each worker process gets a unique port for its OMC connection,
+    preventing port conflicts that cause "OMC did not become ready in time" errors.
+    """
+    
+    def __init__(self, base_port: int = 10000, port_range: int = 10000, 
+                 max_workers: Optional[int] = None):
+        """
+        Initialize the parallel simulation manager.
+        
+        Args:
+            base_port: Starting port number (default: 10000)
+            port_range: Number of ports in the range (default: 10000)
+            max_workers: Maximum number of concurrent workers (default: CPU count - 1)
+        """
+        self.base_port = base_port
+        self.max_port = base_port + port_range - 1
+        self.max_workers = max_workers or max(1, os.cpu_count() - 1)
+        
+        # Shared state for multiprocessing
+        self.manager = Manager()
+        self.used_ports = self.manager.dict()  # {port: process_id}
+        self.port_lock = self.manager.Lock()
+        
+        # Track active simulations
+        self.active_simulations = self.manager.dict()  # {sim_id: port}
+        
+    def get_available_port(self, process_id: Optional[int] = None, 
+                          retries: int = 10) -> int:
+        """
+        Get an available port for a worker process.
+        
+        Uses a simple strategy:
+        1. Try base_port + (process_id % port_range) for deterministic assignment
+        2. If that's taken, scan for next available port
+        3. Verify port is actually free using socket
+        
+        Args:
+            process_id: Process ID (default: current PID)
+            retries: Number of retry attempts
+            
+        Returns:
+            Available port number
+            
+        Raises:
+            RuntimeError: If no port is available after retries
+        """
+        if process_id is None:
+            process_id = os.getpid()
+            
+        # Strategy 1: Deterministic port based on process ID
+        preferred_port = self.base_port + (process_id % (self.max_port - self.base_port + 1))
+        
+        with self.port_lock:
+            # Check if preferred port is available
+            if preferred_port not in self.used_ports.values():
+                if self._is_port_free(preferred_port):
+                    self.used_ports[process_id] = preferred_port
+                    return preferred_port
+            
+            # Strategy 2: Find next available port
+            for attempt in range(retries):
+                for port in range(self.base_port, self.max_port + 1):
+                    if port not in self.used_ports.values():
+                        if self._is_port_free(port):
+                            self.used_ports[process_id] = port
+                            return port
+                
+                # Wait a bit before retrying
+                if attempt < retries - 1:
+                    time.sleep(0.1)
+            
+            raise RuntimeError(
+                f"No available port in range {self.base_port}-{self.max_port} "
+                f"after {retries} attempts"
+            )
+    
+    def _is_port_free(self, port: int) -> bool:
+        """
+        Check if a port is actually free by attempting to bind to it.
+        
+        Args:
+            port: Port number to check
+            
+        Returns:
+            True if port is free, False otherwise
+        """
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind(('127.0.0.1', port))
+                return True
+        except OSError:
+            return False
+    
+    def release_port(self, process_id: Optional[int] = None):
+        """
+        Release a port when a simulation is complete.
+        
+        Args:
+            process_id: Process ID (default: current PID)
+        """
+        if process_id is None:
+            process_id = os.getpid()
+            
+        with self.port_lock:
+            if process_id in self.used_ports:
+                port = self.used_ports.pop(process_id)
+                # Also remove from active simulations if present
+                for sim_id, sim_port in list(self.active_simulations.items()):
+                    if sim_port == port:
+                        self.active_simulations.pop(sim_id)
+    
+    def register_simulation(self, sim_id: int, port: int):
+        """
+        Register an active simulation for tracking.
+        
+        Args:
+            sim_id: Simulation identifier (e.g., index)
+            port: Port assigned to this simulation
+        """
+        with self.port_lock:
+            self.active_simulations[sim_id] = port
+    
+    def get_active_count(self) -> int:
+        """Get the number of currently active simulations."""
+        return len(self.active_simulations)
+    
+    def cleanup(self):
+        """Clean up all resources (call when done with all simulations)."""
+        with self.port_lock:
+            self.used_ports.clear()
+            self.active_simulations.clear()
+
+
+# ============================================================================
+# SIMPLIFIED VERSION (Alternative - No Shared State)
+# ============================================================================
+
+class SimplePortManager:
+    """
+    Simplified port manager that doesn't require shared state.
+    Uses process ID and index to calculate deterministic ports.
+    """
+    
+    def __init__(self, base_port: int = 10000):
+        self.base_port = base_port
+    
+    def get_port_for_worker(self, worker_index: int, process_id: Optional[int] = None) -> int:
+        """
+        Get a port for a worker based on its index and process ID.
+        
+        Formula: base_port + (process_id * 1000) + (worker_index % 1000)
+        
+        This ensures:
+        - Different processes get different port ranges
+        - Different workers in same process get different ports
+        - Deterministic and no conflicts in practice
+        
+        Args:
+            worker_index: Index of the worker (0, 1, 2, ...)
+            process_id: Process ID (default: current PID)
+            
+        Returns:
+            Port number
+        """
+        if process_id is None:
+            process_id = os.getpid()
+        
+        # Use process ID and worker index to create unique port
+        port = self.base_port + (process_id % 100) * 1000 + (worker_index % 1000)
+        
+        # Verify port is free, if not, try nearby ports
+        if not self._is_port_free(port):
+            for offset in range(1, 100):
+                test_port = port + offset
+                if test_port < 65535 and self._is_port_free(test_port):
+                    return test_port
+                test_port = port - offset
+                if test_port >= self.base_port and self._is_port_free(test_port):
+                    return test_port
+        
+        return port
+    
+    def _is_port_free(self, port: int) -> bool:
+        """Check if port is free."""
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                s.bind(('127.0.0.1', port))
+                return True
+        except OSError:
+            return False
+```
+
+================================================================================
+USAGE EXAMPLE
+================================================================================
+
+```python
+# In model.py - Modified simulate_batch_mp function
+
+from omserver.ParallelSimulationManager import SimplePortManager
+
+@bp.route("/simulate_batch_mp", methods=["POST"])
+def simulate_batch_mp():
+    data = request.get_json(force=True)
+    model_name = data["model_name"]
+    start_time = data["start_time"]
+    stop_time = data["stop_time"]
+    combos = data["list_of_config_combinations"]
+    instance_path = current_app.instance_path
+    
+    # Initialize port manager
+    port_manager = SimplePortManager(base_port=10000)
+    
+    # Determine worker count
+    max_workers = min(os.cpu_count() - 1, 8, len(combos))
+    
+    # Build batch record
+    current_time = datetime.now().strftime("%d/%m/%Y %H:%M")
+    batch_record = {
+        "batch_sim_title": f"{current_time}_{model_name}_vessel_name_place_holder",
+        "batch_sim_time_stamp": current_time,
+        "vessel_name": "dev_vessel",
+        "batch_size": int(len(combos)),
+        "batch_sim_res_collection": [],
+    }
+    
+    results = []
+    errors = []
+    
+    # Submit tasks with port assignment
+    with ProcessPoolExecutor(max_workers=max_workers) as ex:
+        futures = []
+        for idx, cfg in enumerate(combos):
+            # Get unique port for this worker
+            port = port_manager.get_port_for_worker(idx, process_id=None)
+            
+            # Submit with port included
+            future = ex.submit(
+                single_simulation_with_port,
+                model_name=model_name,
+                start_time=start_time,
+                stop_time=stop_time,
+                index=idx,
+                cfg=cfg,
+                instance_path=instance_path,
+                port=port  # Pass port to worker
+            )
+            futures.append(future)
+        
+        # Collect results
+        for fut in as_completed(futures):
+            try:
+                res = fut.result()
+                results.append(res)
+            except Exception as e:
+                print(f"[simulate_batch_mp] worker error: {e}")
+                errors.append(str(e))
+    
+    # Save results
+    batch_record["batch_sim_res_collection"] = results
+    append_batch_result(batch_record)
+    
+    status = "completed" if not errors else "completed_with_errors"
+    return jsonify({
+        "status": status,
+        "total": len(combos),
+        "ok": len(results),
+        "errors": errors,
+    })
+
+
+# Modified single_simulation function
+def single_simulation_with_port(
+    model_name: str,
+    start_time: float,
+    stop_time: float,
+    index: int,
+    cfg: dict,
+    instance_path: str,
+    port: int  # NEW: Port parameter
+) -> dict:
+    """
+    Runs one simulation with a specific port assignment.
+    """
+    job_dir = Path(instance_path) / "runs" / f"{model_name}_job_{index}"
+    job_dir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        # Create OMC connection with assigned port
+        omc = OMCConnection(port=port, start_timeout_s=15)  # Increased timeout
+        
+        # Load model
+        omc.request(f'loadFile("{instance_path}/{model_name}.mo")')
+        
+        # Prepare simulation
+        overrides_list = cfg.get("changed_parameters", [])
+        ov = " -override " + ",".join(
+            f"{o['param']}={o['value']}" 
+            for o in overrides_list
+        ) if overrides_list else ""
+        simflags = f'-outputPath {job_dir}{ov}'
+        
+        # Run simulation
+        omc.request(
+            f'simulate({model_name}, '
+            f'outputFormat="csv", '
+            f'startTime={start_time}, '
+            f'stopTime={stop_time}, '
+            f'simflags="{simflags}")'
+        )
+        
+        # Process results (existing code)
+        csv_path = job_dir / f"{model_name}_res.csv"
+        inst = cfg.get("instance", {})
+        # ... rest of processing ...
+        
+        # Cleanup
+        shutil.rmtree(job_dir, ignore_errors=True)
+        
+        return res
+        
+    except Exception as e:
+        print(f"[single_simulation_with_port] Error for index {index}: {e}")
+        raise
+    finally:
+        # Ensure OMC process is terminated
+        try:
+            if 'omc' in locals():
+                del omc  # Triggers __del__ which terminates process
+        except:
+            pass
+```
+
+================================================================================
+KEY IMPROVEMENTS
+================================================================================
+
+1. PORT ASSIGNMENT:
+   - Each worker gets a unique port
+   - Deterministic calculation prevents conflicts
+   - Fallback to port scanning if needed
+
+2. ERROR HANDLING:
+   - Port conflict detection
+   - Graceful retry logic
+   - Proper cleanup
+
+3. RESOURCE MANAGEMENT:
+   - Explicit port release
+   - Process cleanup
+   - Timeout handling
+
+4. SIMPLICITY:
+   - SimplePortManager doesn't need shared state
+   - Works well with ProcessPoolExecutor
+   - Easy to understand and maintain
+
+================================================================================
+TESTING CHECKLIST
+================================================================================
+
+[ ] Test with 2 workers
+[ ] Test with 8 workers
+[ ] Test with 100+ simulations
+[ ] Verify no port conflicts
+[ ] Verify all results collected
+[ ] Verify proper cleanup
+[ ] Test error handling
+[ ] Monitor resource usage
+
+================================================================================
+END OF PROPOSAL
+================================================================================
+

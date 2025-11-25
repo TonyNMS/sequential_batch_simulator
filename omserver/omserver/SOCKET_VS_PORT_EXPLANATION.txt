@@ -1,0 +1,203 @@
+================================================================================
+SOCKET vs PORT EXPLANATION
+================================================================================
+
+In the OMCConnection code, there are THREE different concepts that can be confusing:
+
+1. PORT (TCP Port Number)
+2. SOCKET (ZMQ Socket Object)
+3. RANDOM SOCKET NAME (OMC Security Token)
+
+Let's break them down:
+
+================================================================================
+1. PORT (TCP Port Number) - THE PROBLEM
+================================================================================
+
+What it is:
+-----------
+- A TCP port number (e.g., 10000)
+- The network address where OMC listens for connections
+- Like a door number on a building - multiple processes can't use the same port
+
+In the code:
+-----------
+Line 13:  self._port = int(port)  # Default: 10000
+Line 57:  f"--interactivePort={self._port}"  # Tells OMC to listen on this port
+Line 69:  sock.connect(f"tcp://127.0.0.1:{self._port}")  # Python connects here
+
+The Problem:
+------------
+When you create multiple OMCConnection() instances:
+- They ALL default to port 10000
+- Only ONE process can bind to port 10000 at a time
+- Other processes get "port already in use" errors
+- This causes "OMC did not become ready in time" timeout
+
+Example:
+--------
+Process 1: OMCConnection(port=10000)  ✓ Works
+Process 2: OMCConnection(port=10000)  ✗ FAILS - port 10000 already taken!
+Process 3: OMCConnection(port=10000)  ✗ FAILS - port 10000 already taken!
+
+Solution:
+---------
+Each process needs a UNIQUE port:
+Process 1: OMCConnection(port=10000)  ✓ Works
+Process 2: OMCConnection(port=10001)  ✓ Works
+Process 3: OMCConnection(port=10002)  ✓ Works
+
+================================================================================
+2. SOCKET (ZMQ Socket Object) - NOT THE PROBLEM
+================================================================================
+
+What it is:
+-----------
+- A ZMQ socket object (programming interface)
+- Created by: zmq.Context().socket(zmq.REQ)
+- This is just a Python object that represents a connection
+- It's NOT a network resource that can conflict
+
+In the code:
+-----------
+Line 15:  self._context = zmq.Context()  # Create ZMQ context
+Line 16:  self._omc_socket = self._create_client_socket()  # Create socket object
+Line 66-70: Creates the socket and connects it to the PORT
+
+The socket is just a handle/interface:
+- Each process creates its own socket object
+- Multiple sockets can exist simultaneously
+- They don't conflict with each other
+- The socket connects TO a port, but the socket itself isn't the problem
+
+Analogy:
+--------
+- PORT = The actual door/address (10000)
+- SOCKET = The key you use to open that door
+- Multiple keys (sockets) can exist, but they all need different doors (ports)
+
+================================================================================
+3. RANDOM SOCKET NAME (OMC Security Token) - NOT RELATED TO PORT
+================================================================================
+
+What it is:
+-----------
+- An OpenModelica-specific security token/identifier
+- Passed via `-z={token}` command-line flag
+- Used by OMC for authentication/security
+- NOT related to TCP ports at all!
+
+In the code:
+-----------
+Line 12:  random_socket_name=False  # Parameter
+Line 58-60: if random_socket_name:
+              cmd.append(f"-z={secrets.token_hex(8)}")  # e.g., "-z=d9e3a2fbc1c84e33"
+
+What it does:
+-------------
+- When True: Generates a random 16-character hex token
+- This token is used by OMC for security/authentication
+- It's NOT a port number
+- It doesn't solve the port conflict problem
+
+Why it exists:
+--------------
+- OMC uses this token to verify connections are authorized
+- Prevents unauthorized access to OMC instances
+- But it doesn't change which port OMC listens on
+
+Example:
+--------
+omc --interactive=zmq --interactivePort=10000 -z=abc123def456
+                                    ↑              ↑
+                              TCP PORT      Security Token
+                            (the problem)   (not the problem)
+
+================================================================================
+VISUAL DIAGRAM
+================================================================================
+
+┌─────────────────────────────────────────────────────────────┐
+│                    OMC Process                              │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  Listening on TCP PORT 10000                        │   │
+│  │  (Only ONE process can use this port!)              │   │
+│  └──────────────────────────────────────────────────────┘   │
+│                          ↑                                   │
+│                          │                                   │
+│  Security Token: -z=abc123def456 (optional)                  │
+└─────────────────────────────────────────────────────────────┘
+                          ↑
+                          │ TCP Connection
+                          │
+┌─────────────────────────────────────────────────────────────┐
+│              Python Process (OMCConnection)                  │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  ZMQ Socket Object (self._omc_socket)                │   │
+│  │  - This is just a Python object                       │   │
+│  │  - Connects TO the port                               │   │
+│  │  - Multiple sockets can exist (not the problem)      │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+
+================================================================================
+THE REAL PROBLEM
+================================================================================
+
+When running parallel simulations:
+
+┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+│ Process 1  │         │ Process 2  │         │ Process 3  │
+│             │         │             │         │             │
+│ OMC on      │         │ OMC on      │         │ OMC on      │
+│ PORT 10000  │         │ PORT 10000  │         │ PORT 10000  │
+│     ✓       │         │     ✗       │         │     ✗       │
+│  (works)    │         │ (conflict!) │         │ (conflict!) │
+└─────────────┘         └─────────────┘         └─────────────┘
+
+Only Process 1 can bind to port 10000. Processes 2 and 3 fail!
+
+SOLUTION:
+
+┌─────────────┐         ┌─────────────┐         ┌─────────────┐
+│ Process 1  │         │ Process 2  │         │ Process 3  │
+│             │         │             │         │             │
+│ OMC on      │         │ OMC on      │         │ OMC on      │
+│ PORT 10000  │         │ PORT 10001  │         │ PORT 10002  │
+│     ✓       │         │     ✓       │         │     ✓       │
+│  (works)    │         │  (works)    │         │  (works)    │
+└─────────────┘         └─────────────┘         └─────────────┘
+
+Each process uses a DIFFERENT port - no conflicts!
+
+================================================================================
+SUMMARY
+================================================================================
+
+1. PORT (TCP Port Number):
+   - The network address (e.g., 10000)
+   - THIS IS THE PROBLEM - needs to be unique per process
+   - Fixed/static by default, causing conflicts
+
+2. SOCKET (ZMQ Socket Object):
+   - Just a Python programming interface
+   - NOT the problem - multiple sockets can exist
+   - Each process creates its own socket
+
+3. RANDOM SOCKET NAME (-z token):
+   - OMC security token
+   - NOT related to TCP ports
+   - Doesn't solve the port conflict issue
+
+THE FIX:
+---------
+Assign unique ports to each worker process:
+- Worker 1: port=10000
+- Worker 2: port=10001
+- Worker 3: port=10002
+- etc.
+
+The random socket name (-z) is optional and doesn't affect port conflicts.
+
+================================================================================
+

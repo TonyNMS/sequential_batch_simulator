@@ -24,7 +24,7 @@ class OMCConnection:
         except Exception:
             pass
 
-    # ---- helpers ----
+    # ---- helpers, determines OMC path in ether windoes or linux ----
     def _find_omc(self):
         # 0) static override
         STATIC_OMC_EXE = r"C:\Program Files\OpenModelica1.22.1-64bit\bin\omc.exe"

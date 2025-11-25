@@ -1,0 +1,195 @@
+================================================================================
+PARALLEL PROCESSING IMPLEMENTATION PLAN
+================================================================================
+
+PROBLEM IDENTIFIED:
+-------------------
+The current `simulate_batch_mp` function fails with "OMC did not become ready in time"
+because:
+
+1. PORT CONFLICTS: All worker processes create OMCConnection() with default port 10000
+   - Multiple OMC processes cannot bind to the same port simultaneously
+   - This causes connection failures and timeouts
+
+2. RACE CONDITIONS: When multiple processes start OMC simultaneously:
+   - They compete for the same port
+   - Some processes fail to connect
+   - Readiness checks timeout
+
+3. RESOURCE MANAGEMENT: No proper cleanup or port management strategy
+
+ROOT CAUSE:
+-----------
+In `model.py`, line 917:
+    omc = OMCConnection()  # Uses default port 10000
+
+When ProcessPoolExecutor spawns multiple workers, they all try to use port 10000,
+causing conflicts.
+
+SOLUTION APPROACH:
+-----------------
+
+Option 1: Dynamic Port Assignment (RECOMMENDED)
+------------------------------------------------
+- Assign unique ports to each worker process
+- Use a port range (e.g., 10000-20000)
+- Each worker gets: base_port + worker_id or process_id
+- Implement port conflict detection and retry logic
+
+Advantages:
+  + Simple to implement
+  + Scales well
+  + No shared state needed
+  + Works with ProcessPoolExecutor
+
+Disadvantages:
+  - Need to manage port range
+  - Potential conflicts if many processes
+
+Option 2: Port Pool Manager
+----------------------------
+- Create a shared port pool (using multiprocessing.Manager)
+- Workers request ports from the pool
+- Return ports when done
+
+Advantages:
+  + Centralized port management
+  + Prevents conflicts
+
+Disadvantages:
+  - More complex
+  - Requires shared state (slower)
+  - May have synchronization overhead
+
+Option 3: Process-Specific Port Calculation
+--------------------------------------------
+- Calculate port based on process ID: port = 10000 + (os.getpid() % 1000)
+- Simple and deterministic
+
+Advantages:
+  + Very simple
+  + No shared state
+  + Deterministic
+
+Disadvantages:
+  - Potential collisions if PIDs wrap around
+  - Less control
+
+RECOMMENDED SOLUTION: Option 1 (Dynamic Port Assignment)
+----------------------------------------------------------
+
+IMPLEMENTATION STEPS:
+---------------------
+
+1. MODIFY OMCConnection.__init__():
+   - Add port conflict detection
+   - Implement retry logic with different ports
+   - Or accept a port parameter and let caller manage
+
+2. CREATE ParallelSimulationManager CLASS:
+   - Manages port assignment for workers
+   - Tracks available ports
+   - Provides port to each worker
+   - Handles cleanup
+
+3. MODIFY single_simulation() FUNCTION:
+   - Accept port parameter
+   - Pass port to OMCConnection(port=assigned_port)
+   - Ensure proper cleanup
+
+4. MODIFY simulate_batch_mp() FUNCTION:
+   - Use ParallelSimulationManager
+   - Assign unique ports to each worker
+   - Pass port to single_simulation()
+
+5. ADD ERROR HANDLING:
+   - Port conflict detection
+   - Retry logic
+   - Graceful degradation
+
+PYTHON VERSION REQUIREMENTS:
+----------------------------
+- Python 3.12+ is REQUIRED (you already have this)
+- multiprocessing has been available since Python 2.6
+- ProcessPoolExecutor is available since Python 3.2
+- No need for Python 3.14 (doesn't exist yet - you might be thinking of 3.12+)
+
+The issue is NOT Python version - it's the port conflict problem.
+
+PERFORMANCE CONSIDERATIONS:
+---------------------------
+
+1. WORKER COUNT:
+   - Current: min(os.cpu_count() or 2, 4)
+   - Recommendation: min(os.cpu_count() - 1, 8)
+   - Leave 1 core for system/Flask
+   - OMC simulations are CPU-intensive
+
+2. PORT RANGE:
+   - Base port: 10000
+   - Range: 10000-20000 (10000 ports)
+   - Should be enough for most use cases
+
+3. MEMORY:
+   - Each OMC process uses significant memory
+   - Monitor memory usage with many workers
+   - Consider limiting workers based on available RAM
+
+4. DISK I/O:
+   - Each simulation writes CSV files
+   - Use separate directories per worker (already done)
+   - Consider SSD for better performance
+
+TESTING STRATEGY:
+----------------
+
+1. Test with 2 workers (minimal parallel)
+2. Test with 4-8 workers (typical)
+3. Test with 100+ simulations (stress test)
+4. Verify no port conflicts
+5. Verify all results are collected
+6. Verify proper cleanup
+
+MONITORING:
+-----------
+
+Add logging for:
+- Port assignments
+- Worker start/end times
+- Simulation completion rates
+- Error rates
+- Resource usage (CPU, memory)
+
+ALTERNATIVE APPROACHES:
+-----------------------
+
+If port management becomes too complex, consider:
+
+1. QUEUE-BASED PROCESSING:
+   - Use a task queue (Celery, RQ)
+   - Workers pull tasks from queue
+   - Better for distributed systems
+
+2. THREADING (NOT RECOMMENDED):
+   - Python GIL limits CPU-bound tasks
+   - OMC simulations are CPU-intensive
+   - Multiprocessing is better
+
+3. ASYNC/AWAIT (NOT SUITABLE):
+   - OMC is synchronous
+   - No async OMC API available
+
+NEXT STEPS:
+-----------
+
+1. Review the proposed ParallelSimulationManager class
+2. Implement port assignment logic
+3. Modify OMCConnection to handle port conflicts
+4. Update single_simulation to accept port parameter
+5. Test with small batch first
+6. Scale up gradually
+
+================================================================================
+END OF PLAN
+================================================================================
+

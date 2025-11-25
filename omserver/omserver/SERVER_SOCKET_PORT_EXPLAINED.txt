@@ -1,0 +1,238 @@
+================================================================================
+SERVER, SOCKET, and PORT - CLEAR EXPLANATION
+================================================================================
+
+Let me break down what happens in your code step by step:
+
+================================================================================
+STEP 1: WHAT HAPPENS WHEN YOU CREATE OMCConnection()
+================================================================================
+
+When you do: omc = OMCConnection(port=10000)
+
+1. Python starts an OMC SERVER process:
+   ┌─────────────────────────────────────┐
+   │  OMC Server Process (subprocess)     │
+   │                                      │
+   │  Command: omc --interactivePort=10000│
+   │                                      │
+   │  This SERVER BINDS to port 10000    │
+   │  (It LISTENS on port 10000)          │
+   └─────────────────────────────────────┘
+              ↑
+              │ This port is "owned" by this server
+              │ Only ONE process can bind to a port!
+
+2. Python creates a CLIENT SOCKET:
+   ┌─────────────────────────────────────┐
+   │  Python Process (your code)         │
+   │                                      │
+   │  self._omc_socket = zmq socket      │
+   │  This is a CLIENT socket            │
+   │  It CONNECTS to port 10000          │
+   └─────────────────────────────────────┘
+              ↓
+              │ Connects to...
+              ↓
+   ┌─────────────────────────────────────┐
+   │  OMC Server on port 10000           │
+   └─────────────────────────────────────┘
+
+================================================================================
+KEY CONCEPTS:
+================================================================================
+
+1. SERVER:
+   - The OMC process (started by subprocess.Popen)
+   - It BINDS to a port (listens for connections)
+   - Only ONE server can bind to a specific port at a time
+   - Like a phone number - only one person can have that number
+
+2. PORT:
+   - A number (like 10000)
+   - The "address" where the server listens
+   - Only ONE server can bind to a port
+   - Multiple clients can CONNECT to the same port
+
+3. SOCKET:
+   - The CLIENT socket (in Python code)
+   - It CONNECTS to the server's port
+   - Multiple sockets can connect to the same server
+   - But each socket is just a connection handle
+
+================================================================================
+THE PROBLEM: MULTIPLE SERVERS, SAME PORT
+================================================================================
+
+When you run parallel simulations:
+
+┌─────────────────────────────────────────────────────────────┐
+│  Process 1 (Worker 1)                                       │
+│  ┌──────────────────────┐                                    │
+│  │ OMC Server          │  BINDS to port 10000  ✓           │
+│  │ (subprocess)         │  (First one - works!)             │
+│  └──────────────────────┘                                    │
+│         ↑                                                     │
+│         │ Python client socket connects                      │
+│         │                                                     │
+│  ┌──────────────────────┐                                    │
+│  │ Python Socket        │  CONNECTS to port 10000  ✓        │
+│  └──────────────────────┘                                    │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Process 2 (Worker 2)                                       │
+│  ┌──────────────────────┐                                    │
+│  │ OMC Server          │  TRIES to BIND to port 10000  ✗   │
+│  │ (subprocess)         │  (FAILS - port already taken!)    │
+│  └──────────────────────┘                                    │
+│         ↑                                                     │
+│         │ Can't connect - server never started!              │
+│         │                                                     │
+│  ┌──────────────────────┐                                    │
+│  │ Python Socket        │  Can't connect (no server)  ✗    │
+│  └──────────────────────┘                                    │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Process 3 (Worker 3)                                       │
+│  ┌──────────────────────┐                                    │
+│  │ OMC Server          │  TRIES to BIND to port 10000  ✗   │
+│  │ (subprocess)         │  (FAILS - port already taken!)    │
+│  └──────────────────────┘                                    │
+│         ↑                                                     │
+│         │ Can't connect - server never started!              │
+│         │                                                     │
+│  ┌──────────────────────┐                                    │
+│  │ Python Socket        │  Can't connect (no server)  ✗    │
+│  └──────────────────────┘                                    │
+└─────────────────────────────────────────────────────────────┘
+
+RESULT: Only Process 1 works, Processes 2 and 3 fail!
+
+================================================================================
+THE SOLUTION: DIFFERENT PORTS FOR EACH SERVER
+================================================================================
+
+┌─────────────────────────────────────────────────────────────┐
+│  Process 1 (Worker 1)                                       │
+│  ┌──────────────────────┐                                    │
+│  │ OMC Server          │  BINDS to port 10000  ✓           │
+│  └──────────────────────┘                                    │
+│         ↑                                                     │
+│         │                                                     │
+│  ┌──────────────────────┐                                    │
+│  │ Python Socket        │  CONNECTS to port 10000  ✓        │
+│  └──────────────────────┘                                    │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Process 2 (Worker 2)                                       │
+│  ┌──────────────────────┐                                    │
+│  │ OMC Server          │  BINDS to port 10001  ✓           │
+│  └──────────────────────┘                                    │
+│         ↑                                                     │
+│         │                                                     │
+│  ┌──────────────────────┐                                    │
+│  │ Python Socket        │  CONNECTS to port 10001  ✓        │
+│  └──────────────────────┘                                    │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│  Process 3 (Worker 3)                                       │
+│  ┌──────────────────────┐                                    │
+│  │ OMC Server          │  BINDS to port 10002  ✓           │
+│  └──────────────────────┘                                    │
+│         ↑                                                     │
+│         │                                                     │
+│  ┌──────────────────────┐                                    │
+│  │ Python Socket        │  CONNECTS to port 10002  ✓        │
+│  └──────────────────────┘                                    │
+└─────────────────────────────────────────────────────────────┘
+
+RESULT: All processes work! Each server has its own port!
+
+================================================================================
+ANALOGY: PHONE SYSTEM
+================================================================================
+
+PORT = Phone Number
+SERVER = Person who owns the phone number (listens for calls)
+SOCKET = Your phone call (connects to the number)
+
+THE PROBLEM:
+-----------
+- Person 1 gets phone number 10000 ✓
+- Person 2 tries to get phone number 10000 ✗ (already taken!)
+- Person 3 tries to get phone number 10000 ✗ (already taken!)
+
+THE SOLUTION:
+-------------
+- Person 1 gets phone number 10000 ✓
+- Person 2 gets phone number 10001 ✓
+- Person 3 gets phone number 10002 ✓
+
+Now everyone can receive calls on their own number!
+
+================================================================================
+IN YOUR CODE:
+================================================================================
+
+Line 57: cmd = [omc_executable, "--interactive=zmq", f"--interactivePort={self._port}"]
+         └──────────────────────────────────────────────────────────────────┘
+         This tells OMC SERVER to BIND to this port
+
+Line 64: return subprocess.Popen(cmd, ...)
+         └────────────────────────────────┘
+         This STARTS the OMC SERVER process
+
+Line 69: sock.connect(f"tcp://127.0.0.1:{self._port}")
+         └────────────────────────────────────────┘
+         This makes the CLIENT SOCKET connect to the server's port
+
+THE FLOW:
+---------
+1. Start OMC server → Server BINDS to port 10000
+2. Create Python socket → Socket CONNECTS to port 10000
+3. Send requests through socket → Server receives on port 10000
+
+THE PROBLEM IN PARALLEL:
+------------------------
+1. Process 1: Start OMC server → Binds to port 10000 ✓
+2. Process 2: Start OMC server → Tries to bind to port 10000 ✗ (taken!)
+3. Process 3: Start OMC server → Tries to bind to port 10000 ✗ (taken!)
+
+THE SOLUTION:
+-------------
+1. Process 1: Start OMC server → Binds to port 10000 ✓
+2. Process 2: Start OMC server → Binds to port 10001 ✓
+3. Process 3: Start OMC server → Binds to port 10002 ✓
+
+================================================================================
+SUMMARY:
+================================================================================
+
+❌ WRONG UNDERSTANDING:
+   "Each server has different socket, but each server is trying to connect port"
+
+✅ CORRECT UNDERSTANDING:
+   - Each SERVER BINDS to a PORT (listens)
+   - Each CLIENT SOCKET CONNECTS to a PORT
+   - Multiple servers CANNOT bind to the same port
+   - Multiple sockets CAN connect to the same server port (but that's not your case)
+
+YOUR CASE:
+----------
+- You have MULTIPLE SERVERS (one per worker process)
+- Each server needs its OWN PORT
+- Each client socket connects to its OWN SERVER's port
+
+THE FIX:
+--------
+Give each server a different port:
+- Server 1 → Port 10000
+- Server 2 → Port 10001
+- Server 3 → Port 10002
+
+================================================================================
+
