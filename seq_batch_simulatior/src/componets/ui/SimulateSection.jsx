@@ -3,7 +3,7 @@ import { buildCombinations, commitBatchSimulation, markUnrealisticCombos, modeli
 import { BatteryListContext, DieselEngienListContext, FuelCellListContext, MethanolEngineListContext } from "../../App";
 import { dutyCycleInfo, singleIteration } from "../funtion_utils/TestingConfigUnits.jsx";
 
-const  POSSIBLE_BATTERY_COUNT = [0,1,5]
+const  POSSIBLE_BATTERY_COUNT = [0,1]
 const  POSSIBLE_OPTIMAL_LOWER_PERCENTAGE = [0.05]
 const  POSSBILE_OPTIMAL_UPPER_PERCENTAGE = [0.05]
 const SimulateSection =()=>{
