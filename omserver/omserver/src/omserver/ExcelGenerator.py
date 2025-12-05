@@ -76,7 +76,7 @@ class ExcelGenerator:
         # Header row
         headers = [
             "Iteration ID",
-            "Iternation Name",
+            "Iteration Name",
             "Gen1 Name",
             "Gen1 Lower",
             "Gen1 Upper",

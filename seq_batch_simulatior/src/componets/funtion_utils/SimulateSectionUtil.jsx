@@ -29,10 +29,10 @@ export async function buildCombinations(dieList, methList, fcList, batList,  POS
     );
     
     // Filter out combos with higher bound lower than   
-    const engineOptionsFiltered = engineOptions.filter(item => item.hi >= item.lo);
+    //const engineOptionsFiltered = engineOptions.filter(item => item.hi >= item.lo);
     // Gneerate all possible configurations
     const allConfigs = generateAllPowerTrains({
-        engineOptions: engineOptionsFiltered,
+        engineOptions: engineOptions,
         numSlots: numSlots,
         batteries: batList ,
         batteryCounts: POS_BAT_COUNT,
