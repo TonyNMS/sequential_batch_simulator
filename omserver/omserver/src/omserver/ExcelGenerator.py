@@ -86,6 +86,8 @@ class ExcelGenerator:
             "Gen3 Name",
             "Gen3 Lower",
             "Gen3 Upper",
+            "Battery Name",
+            "Battery Count",
             "Diesel Usage (Ton)",
             "Methanol Usage (Ton)",
             "Hydrogen Usage (Ton)",
@@ -104,6 +106,8 @@ class ExcelGenerator:
         for iteration in iterations:
             sime_name = iteration.get("sim_name", "N/A")
             sequence = iteration.get("sequence", "N/A")
+            battery_name = iteration.get("battery_name", "N/A")
+            battery_count = iteration.get("battery_count", "N/A")
             opt_zone = iteration.get("optimalZone", [0, 0, 0, 0, 0, 0])
             energy_balance = "True" if iteration.get("Total Energy Wasted (kWh)") == 0 else "False"
             wastered_energy_significance_check = "True" if iteration.get("Total Energy Wasted (kWh)") >  10  else "False"
@@ -117,6 +121,8 @@ class ExcelGenerator:
                 gen_names[0], opt_zone[0] if len(opt_zone) > 0 else 0, opt_zone[1] if len(opt_zone) > 1 else 0,
                 gen_names[1], opt_zone[2] if len(opt_zone) > 2 else 0, opt_zone[3] if len(opt_zone) > 3 else 0,
                 gen_names[2], opt_zone[4] if len(opt_zone) > 4 else 0, opt_zone[5] if len(opt_zone) > 5 else 0,
+                battery_name,
+                battery_count,
                 iteration.get("diesel_usage (Ton)", 0),
                 iteration.get("meth_usage (Ton)", 0),
                 iteration.get("hydrogen_usage (Ton)", 0),

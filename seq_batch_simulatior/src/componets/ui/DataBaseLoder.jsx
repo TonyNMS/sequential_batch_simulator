@@ -2,7 +2,7 @@ import React, { useState, useContext } from "react";
 import { BatteryListContext, DieselEngienListContext, FuelCellListContext, MethanolEngineListContext } from "../../App";
 import readCSV from "../funtion_utils/DatabseLoaderUtils";
 
-import SimpleDatabaseUrl from "../../assets/temp_db_assets/simple_db_with_bsfc.csv?url"
+import SimpleDatabaseUrl from "../../assets/temp_db_assets/simple_db_with_abb.csv?url"
 import FullDatabseUrl from "../../assets/temp_db_assets/FullDatabase.csv?url"
 const DataBaseLoader =()=>{
     /**

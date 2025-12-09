@@ -13,6 +13,8 @@ const readCSV =async (path)=>{
     }
     const tempRes  =  extractGeneratorAndFuelCell(rows);
     temp_battery_container = extractBattery(rows);
+    // Return elements in temp_battery_container
+    // 0 = diesel eng list, 1 = meth engine list, 2 = hydrogen engine lis
     return [tempRes[0], tempRes[1], tempRes[2], temp_battery_container];
 }
 export default readCSV
@@ -45,7 +47,9 @@ function extractGeneratorAndFuelCell (rows) {
                 engine_volume: Number(row[5]),
                 engine_bsfc: row[7]?.toString() ?? "",
                 engine_fcc:  row[8]?.toString() ?? "",
-                engine_fuel_type: fuel
+                engine_fuel_type: fuel,
+                engine_db_index: row[9]?.toString() ?? "default_eng_idx",
+                engine_retrofit_cost:Number(row[10])
             };
             if (fuel === "Diesel") {temp_die_eng_container.push(engineObj)};
             if (fuel === "Methanol") {temp_alt_eng_container.push(engineObj)};
@@ -67,17 +71,20 @@ function extractBattery (rows){
         const row = rows[i];
         if (!row || row.length === 0) { i++; continue; }
 
-        const name     = row[9]?.trim();  
+        const name     = row[11]?.trim();  
         if (!name) { i++; continue; }    
 
-        const cap      = Number(row[10]); 
-        const cost     = Number(row[11]);
-        const mass     = Number(row[12]);
-        const volume   = Number(row[13]);
-        const voltage  = Number(row[14]);
-        const current  = Number(row[15]);
-        const cRate    = Number(row[16]);
-
+        const cap      = Number(row[12]); 
+        const cost     = Number(row[13]);
+        const mass     = Number(row[14]);
+        const volume   = Number(row[15]);
+        const voltage  = Number(row[16]);
+        const current  = Number(row[17]);
+        const cRate    = Number(row[18]);
+        const bat_db_idx = row[19]?.toString() ?? "DF_DB_IDX";
+        const bat_abb = row[20]?.toString() ?? "DF_ABB";
+        const bat_cyl_lim = Number(row[21]);
+      
         temp_battery_container.push({
             battery_name: name,
             battery_capcity: cap,
@@ -89,6 +96,9 @@ function extractBattery (rows){
             battery_max_c_rate: cRate,
             battery_charge_rate: cRate * current,
             battery_max_charge_power: voltage * current,
+            battery_db_index:bat_db_idx,
+            battery_abbreviation: bat_abb,
+            battery_cyce_limit:bat_cyl_lim
         });
         i++
     }

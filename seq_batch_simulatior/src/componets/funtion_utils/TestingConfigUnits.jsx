@@ -15,36 +15,26 @@ export const singleIteration =[{
                 "engine_volume": 0.779,
                 "engine_bsfc": "[80, 197.91; 160, 189.97; 240, 183.23; 320, 177.71; 400, 173.40; 480, 170.30; 560, 168.42; 640, 167.74; 720, 168.28; 800, 170.03]",
                 "engine_fcc": "[0, 0.00; 10, 18.72; 20, 35.93; 30, 51.98; 40, 67.22; 50, 81.99; 60, 96.63; 70, 111.48; 80, 126.90; 90, 143.22; 100, 160.79]",
-                "engine_fuel_type": "Diesel"
+                "engine_fuel_type": "Diesel",
+                "engine_db_index" : "D1"
             },
             "slot 1_upper": 0.05,
             "slot 1_lower": 0.05,
             "slot 2": {
-                "engine_name": "Nordhavn Methano Engine  330",
-                "engine_p_max": 330,
-                "engine_p_min": 33,
+                "engine_name": "Finctional Engine 330",
+                "engine_p_max": 800,
+                "engine_p_min": 80,
                 "engine_cost": 85000,
                 "engine_mass": 1660,
                 "engine_volume": 2.5,
-                "engine_bsfc": "[33, 727.27; 83, 521.21; 165, 484.85; 248, 456.57; 330, 439.39]",
-                "engine_fcc": "[0, 0.00; 10, 30.34; 25, 54.36; 50, 101.14; 75, 142.86; 100, 183.31]",
-                "engine_fuel_type": "Methanol"
+                "engine_bsfc": "[80, 422.68; 160, 405.71; 240, 391.32; 320, 379.53; 400, 370.33; 480, 363.71; 560,359.69; 640, 358.25; 720,359.40;800,363.14]",
+                "engine_fcc": "[0, 0.00; 10, 42.69; 20, 81.96; 30, 118.58; 40, 153.35; 50, 187.03; 60, 220.43; 70, 254.32; 80, 289.49; 90, 326.73; 100,366.80]",
+                "engine_fuel_type": "Methanol",
+                "engine_db_index" : "M1"
+        
             },
             "slot 2_upper": 0.05,
             "slot 2_lower": 0.05,
-            "slot 3": {
-                "engine_name": "Fortuna Crane Engine",
-                "engine_p_max": 800,
-                "engine_p_min": 80,
-                "engine_cost": 50000,
-                "engine_mass": 730,
-                "engine_volume": 0.779,
-                "engine_bsfc": "[80, 197.91; 160, 189.97; 240, 183.23; 320, 177.71; 400, 173.40; 480, 170.30; 560, 168.42; 640, 167.74; 720, 168.28; 800, 170.03]",
-                "engine_fcc": "[0, 0.00; 10, 18.72; 20, 35.93; 30, 51.98; 40, 67.22; 50, 81.99; 60, 96.63; 70, 111.48; 80, 126.90; 90, 143.22; 100, 160.79]",
-                "engine_fuel_type": "Diesel"
-            },
-            "slot 3_upper": 0.05,
-            "slot 3_lower": 0.05,
             "battery": {
                 "battery_name": "Durapower 666 V",
                 "battery_capcity": 42.6,
@@ -55,7 +45,9 @@ export const singleIteration =[{
                 "battery_current": 384,
                 "battery_max_c_rate": 1,
                 "battery_charge_rate": 384,
-                "battery_max_charge_power": 255744
+                "battery_max_charge_power": 255744,
+                "battery_db_index" :"B1",
+                "battery_abbreviation": "DP1",
             },
             "battery_count": 0,
             "check": true
@@ -108,11 +100,11 @@ export const singleIteration =[{
         },
         {
             "param": "generator_P_rat_2",
-            "value": "330000"
+            "value": "800000"
         },
         {
             "param": "generator_P_idle_2",
-            "value": "33000"
+            "value": "80000"
         },
         {
             "param": "generator_FLHV_2",
@@ -140,46 +132,6 @@ export const singleIteration =[{
         },
         {
             "param": "mCtrl_user_defined_BSFC_percentage_2_lower",
-            "value": "0.05"
-        },
-        {
-            "param": "gen3_is_on",
-            "value": "true"
-        },
-        {
-            "param": "generator_P_rat_3",
-            "value": "800000"
-        },
-        {
-            "param": "generator_P_idle_3",
-            "value": "80000"
-        },
-        {
-            "param": "generator_FLHV_3",
-            "value": "45.9e6"
-        },
-        {
-            "param": "generator_Frho_3",
-            "value": "846"
-        },
-        {
-            "param": "generator_Frho_liq_3",
-            "value": "846"
-        },
-        {
-            "param": "generator_FcarbonContent_3",
-            "value": "0.86"
-        },
-        {
-            "param": "generator_MolarMass_3",
-            "value": "0.223"
-        },
-        {
-            "param": "mCtrl_user_defined_BSFC_percentage_3",
-            "value": "0.05"
-        },
-        {
-            "param": "mCtrl_user_defined_BSFC_percentage_3_lower",
             "value": "0.05"
         },
         {

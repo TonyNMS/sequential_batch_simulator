@@ -39,7 +39,8 @@ export async function buildCombinations(dieList, methList, fcList, batList,  POS
     });
     return allConfigs;
 
-}  
+}
+  
 export async function parseDutyCycle() {
   const res = await fetch(DutyCycle);
   const text = await res.text();
@@ -77,6 +78,7 @@ export async function parseDutyCycle() {
     maxPower,
   };
 }
+
 export async function markUnrealisticCombos({combos, vollimit, weighLimit, numslots}){
     /**
      * This function loop thorugh every configuration object and determine it exceed weight/ volumn limit
@@ -107,6 +109,7 @@ export async function markUnrealisticCombos({combos, vollimit, weighLimit, numsl
     return tempoCombos
 
 }
+
 export async function filterIncapbleSystem({combos, numslots, max_power_required}){
     /**
      * This function loop through every combinations and determine if the generators alone can handle the peak demand
@@ -209,6 +212,7 @@ export async function modelicaParameterMapping(combos, numslots){
     return changed_parameters
 
 }
+
 function sequencesOfLength(oengineOptions, length){
     /**
      * This a local helper function, create all possible sequenecy of engine arrangements 
@@ -222,6 +226,7 @@ function sequencesOfLength(oengineOptions, length){
     }
     return result;
 }
+
 
 function generateSlotConfigs(engineOptions, numSlots) {
    /**
@@ -242,6 +247,7 @@ function generateSlotConfigs(engineOptions, numSlots) {
   }
   return configs;
 }
+
 
 function generateAllPowerTrains({engineOptions, numSlots, batteries,batteryCounts,}) {
     /**
@@ -301,8 +307,8 @@ export const commitBatchSimulation = async ({moParams, startTime,endTime,modelNa
             },
             body: JSON.stringify({
                 model_name: modelName,
-                start_time: 0,
-                stop_time: 652860,
+                start_time: startTime,
+                stop_time: endTime,
                 list_of_config_combinations:moParams,
                 number_of_slots : numSlot
             }),

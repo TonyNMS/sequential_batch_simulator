@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useRef, useState } from "react";
 import { buildCombinations, commitBatchSimulation, markUnrealisticCombos, modelicaParameterMapping, filterIncapbleSystem, parseDutyCycle } from "../funtion_utils/SimulateSectionUtil.jsx";
 import { BatteryListContext, DieselEngienListContext, FuelCellListContext, MethanolEngineListContext } from "../../App";
 import { dutyCycleInfo, singleIteration } from "../funtion_utils/TestingConfigUnits.jsx";
@@ -14,6 +14,7 @@ const SimulateSection =()=>{
      */
     const  [simulationStatus, setSimulationStatus] = useState();
     const  [engineSlots, setEngineSlots] = useState(2);
+    const  egnine_slots_input = useRef(null);
     const  [dieGenObjList, setDiegenObjList] = useContext(DieselEngienListContext);
     const  [methGenObjList, setMethGenObjList] = useContext(MethanolEngineListContext);
     const  [batObjList, setBatObjList] = useContext(BatteryListContext);
@@ -63,9 +64,10 @@ const SimulateSection =()=>{
             endTime:dutyCycleInfo.endTime.toString(), modelName:"SEACHANGE_TEST_85MCR_batch", numSlot: engineSlots});
     }
 
-    // A separate debug section
+    // A separate debug simulation
     async function handleDebug(){
         const debug= singleIteration
+        // Debugging case has 1 diesel 1 methanol and no battery
         await commitBatchSimulation({ moParams:debug, startTime: dutyCycleInfo.startTime.toString(), 
             endTime:dutyCycleInfo.endTime.toString(), modelName:"SEACHANGE_TEST_85MCR_batch", numSlot: engineSlots});
 
@@ -87,7 +89,9 @@ const SimulateSection =()=>{
             <input 
                 type="number"
                 placeholder="Enter an integer from 1 to 10" 
+                defaultValue={2}
                 value = {engineSlots}
+                ref ={egnine_slots_input}
                 id="engine_slots_input"></input>
             <button onClick={handleConfirmEngineSlots}>Confirm Engine Slots</button>
         </div>

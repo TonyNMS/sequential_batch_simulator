@@ -5861,9 +5861,9 @@ if isLast then
   SEACHANGE_TEST_85MCR_batch.IdealTankSinglePort idealTankSinglePort10(m_content_max = idealTank_TankcontentDiesel, m_content_start = idealTank_TankcontentDieselStart, redeclare replaceable package Medium = SEACHANGE_TEST_85MCR_batch.Fuel.MethanolFuel) annotation(
     Placement(transformation(origin = {110, -130}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression genFuelFlow1(y = generator1.m_flow_fuel) annotation(
-    Placement(transformation(origin = {-490, -170}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-490, -210}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression genFuelFlow2(y = generator2.m_flow_fuel) annotation(
-    Placement(transformation(origin = {-490, -250}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-490, -290}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression genFuelFlow3(y = if gen3_is_on then generator3.outlet_fuel.m_flow else 0) annotation(
     Placement(transformation(origin = {-490, -322}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression genFuelFlow4(y = if gen4_is_on then generator4.outlet_fuel.m_flow else 0) annotation(
@@ -5885,7 +5885,7 @@ if isLast then
   Modelica.Blocks.Interaction.Show.RealValue reavalueSurplus annotation(
     Placement(transformation(origin = {-230, -232}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Continuous.Integrator integrator1(initType = Modelica.Blocks.Types.Init.InitialState, y_start = 0, k = 1) annotation(
-    Placement(transformation(origin = {-450, -170}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-450, -210}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Continuous.Integrator integrator3 annotation(
     Placement(transformation(origin = {-450, -322}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Continuous.Integrator integrator4 annotation(
@@ -5903,9 +5903,9 @@ if isLast then
   Modelica.Blocks.Continuous.Integrator integrator10 annotation(
     Placement(transformation(origin = {-450, -470}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueGenFuelConsump1 annotation(
-    Placement(transformation(origin = {-408, -170}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-410, -210}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueGenFuelConsump2(use_numberPort = true) annotation(
-    Placement(transformation(origin = {-410, -250}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-410, -290}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueGenFuelConsump3 annotation(
     Placement(transformation(origin = {-410, -322}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueGenFuelConsump4 annotation(
@@ -5923,11 +5923,11 @@ if isLast then
   Modelica.Blocks.Interaction.Show.RealValue realValueGenFuelConsump10 annotation(
     Placement(transformation(origin = {-410, -470}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression TotalFuelFLow(y = (if gen1_is_on then generator1.outlet_fuel.m_flow else 0) + (if gen2_is_on then generator2.outlet_fuel.m_flow else 0) + (if gen3_is_on then generator3.outlet_fuel.m_flow else 0) + (if gen4_is_on then generator4.outlet_fuel.m_flow else 0) + (if gen5_is_on then generator5.outlet_fuel.m_flow else 0) + (if gen6_is_on then generator6.outlet_fuel.m_flow else 0) + (if gen7_is_on then generator7.outlet_fuel.m_flow else 0) + (if gen8_is_on then generator8.outlet_fuel.m_flow else 0) + (if gen9_is_on then generator9.outlet_fuel.m_flow else 0) + (if gen10_is_on then generator10.outlet_fuel.m_flow else 0)) annotation(
-    Placement(transformation(origin = {-490, -290}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-370, -170}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Continuous.Integrator integrator11 annotation(
-    Placement(transformation(origin = {-450, -290}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-330, -170}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueTotalFuelCosumption annotation(
-    Placement(transformation(origin = {-410, -290}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-290, -170}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Math.Gain gainGenMostEffPwr(k = 1000) annotation(
     Placement(transformation(origin = {-468, 278}, extent = {{-4, -4}, {4, 4}})));
   Modelica.Blocks.Math.Gain gainGenMostEffPwr2(k = 1000) annotation(
@@ -5949,11 +5949,11 @@ if isLast then
   Modelica.Blocks.Math.Gain gainGenMostEffPwr10(k = 1000) annotation(
     Placement(transformation(origin = {-136, 242}, extent = {{-4, -4}, {4, 4}})));
   Modelica.Blocks.Continuous.Integrator integrator2(initType = Modelica.Blocks.Types.Init.InitialState, y_start = 0, k = 1) annotation(
-    Placement(transformation(origin = {-450, -250}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-450, -290}, extent = {{-10, -10}, {10, 10}})));
   SEACHANGE_TEST_85MCR_batch.FuelUsageTrapezoidSampled fuelUsageTrapezoidSampled annotation(
-    Placement(transformation(origin = {-450, -204}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-450, -250}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realFuelUsage1 annotation(
-    Placement(transformation(origin = {-410, -200}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-410, -250}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression realExpression(y = gain1.y) annotation(
     Placement(transformation(origin = {-376, -318}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Continuous.Integrator integratorDemand annotation(
@@ -6243,13 +6243,13 @@ equation
   connect(generator10.outlet_fuel, idealTankSinglePort10.fluidPort) annotation(
     Line(points = {{56, -120}, {56, -130}, {100, -130}}, color = {28, 108, 200}));
   connect(integrator11.y, realValueTotalFuelCosumption.numberPort) annotation(
-    Line(points = {{-439, -290}, {-423, -290}}, color = {0, 0, 127}));
+    Line(points = {{-319, -170}, {-303, -170}}, color = {0, 0, 127}));
   connect(TotalFuelFLow.y, integrator11.u) annotation(
-    Line(points = {{-479, -290}, {-462, -290}}, color = {0, 0, 127}));
+    Line(points = {{-359, -170}, {-342, -170}}, color = {0, 0, 127}));
   connect(genFuelFlow1.y, integrator1.u) annotation(
-    Line(points = {{-479, -170}, {-463, -170}}, color = {0, 0, 127}));
+    Line(points = {{-479, -210}, {-463, -210}}, color = {0, 0, 127}));
   connect(integrator1.y, realValueGenFuelConsump1.numberPort) annotation(
-    Line(points = {{-439, -170}, {-419.5, -170}}, color = {0, 0, 127}));
+    Line(points = {{-439, -210}, {-421.5, -210}}, color = {0, 0, 127}));
   connect(genFuelFlow3.y, integrator3.u) annotation(
     Line(points = {{-479, -322}, {-463, -322}}, color = {0, 0, 127}));
   connect(integrator3.y, realValueGenFuelConsump3.numberPort) annotation(
@@ -6371,15 +6371,15 @@ equation
   connect(gainGenMostEffPwr10.y, individualEngineController.genMinBSFC10) annotation(
     Line(points = {{-132, 242}, {-108, 242}, {-108, -112}, {-150, -112}, {-150, 20}, {-149, 20}}, color = {85, 170, 0}, pattern = LinePattern.DashDot, thickness = 1));
   connect(genFuelFlow2.y, integrator2.u) annotation(
-    Line(points = {{-479, -250}, {-463, -250}}, color = {0, 0, 127}));
+    Line(points = {{-479, -290}, {-463, -290}}, color = {0, 0, 127}));
   connect(integrator2.y, realValueGenFuelConsump2.numberPort) annotation(
-    Line(points = {{-439, -250}, {-423, -250}}, color = {0, 0, 127}));
+    Line(points = {{-439, -290}, {-423, -290}}, color = {0, 0, 127}));
   connect(Surplus.y, reavalueSurplus.numberPort) annotation(
     Line(points = {{-299, -232}, {-242, -232}}, color = {0, 0, 127}));
   connect(genFuelFlow1.y, fuelUsageTrapezoidSampled.u) annotation(
-    Line(points = {{-479, -170}, {-475, -170}, {-475, -203}, {-462, -203}}, color = {0, 0, 127}));
+    Line(points = {{-479, -210}, {-475, -210}, {-475, -250}, {-462, -250}}, color = {0, 0, 127}));
   connect(fuelUsageTrapezoidSampled.y, realFuelUsage1.numberPort) annotation(
-    Line(points = {{-439, -203.8}, {-429.5, -203.8}, {-429.5, -199.8}, {-422, -199.8}}, color = {0, 0, 127}));
+    Line(points = {{-439, -250}, {-421.5, -250}}, color = {0, 0, 127}));
   connect(realExpression.y, integratorDemand.u) annotation(
     Line(points = {{-365, -318}, {-348, -318}}, color = {0, 0, 127}));
   connect(Surplus1.y, integratorSurplus.u) annotation(

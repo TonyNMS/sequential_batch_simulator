@@ -196,23 +196,33 @@ def simulate_batch():
                 slot1_engine = (config.get("slot 1") or {}).get("engine_name", "None")
                 slot2_engine = (config.get("slot 2") or {}).get("engine_name", "None")
                 slot3_engine = (config.get("slot 3") or {}).get("engine_name", "None")
+                slot1_engine_db_idx = (config.get("slot 1") or {}).get("engine_db_index", "None")
+                slot2_engine_db_idx = (config.get("slot 2") or {}).get("engine_db_index", "None")
+                slot3_engine_db_idx = (config.get("slot 3") or {}).get("engine_db_index", "None")
+
                 battery_name = (config.get("battery") or {}).get("battery_name", "None")
                 battery_count = config.get("battery_count", 0)
+                battery_db_idx = (config.get("battery") or {}).get("battery_db_index", "None")
+                battery_abb = (config.get("battery") or {}).get("battery_abbreviation", "None")
                 #store all the current opt zone pairs (for  max three gens)
                 cur_optZonePairs= [config.get("slot 1_lower") or 0, config.get("slot 1_upper") or 0, config.get("slot 2_lower") or 0, config.get("slot 2_upper") or 0, config.get("slot 3_lower") or 0, config.get("slot 3_upper") or 0]
                 # Create descriptive simulation name
                 # Make the abberivation for generators 1, 2 ,3 
-
-                gen1_type_abb = "D" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 1") or {}).get("engine_fuel_type", "None")=="FC" else "None"
-                gen2_type_abb = "D" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 2") or {}).get("engine_fuel_type", "None")=="FC" else "None"
-                gen3_type_abb = "D" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 3") or {}).get("engine_fuel_type", "None")=="FC" else "None"
+                #gen1_type_abb = "D" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 1") or {}).get("engine_fuel_type", "None")=="FC" else "None"
+                #gen2_type_abb = "D" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 2") or {}).get("engine_fuel_type", "None")=="FC" else "None"
+                #gen3_type_abb = "D" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 3") or {}).get("engine_fuel_type", "None")=="FC" else "None"
                 battery_power =  f"{"{:.2f}".format((config.get("battery") or {}).get("battery_max_charge_power", 0) * battery_count * (1/1000))}" if config.get("battery_count", 0) >= 1 else 0
                 gen1_power_abb = f"{(config.get("slot 1") or {}).get("engine_p_max", 0)}" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") != "None" else 0
                 gen2_power_abb = f"{(config.get("slot 2") or {}).get("engine_p_max", 0)}" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") != "None" else 0   
                 gen3_power_abb = f"{(config.get("slot 3") or {}).get("engine_p_max", 0)}" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") != "None" else 0
                 
-               
-                simName = f"G1_{gen1_type_abb + gen1_power_abb if (config.get("slot 1") or {}).get("engine_fuel_type", "None") != "None" else  0}:G2_{gen2_type_abb + gen2_power_abb if (config.get("slot 2") or {}).get("engine_fuel_type", "None") != "None" else 0}:G3_{gen3_type_abb + gen3_power_abb if (config.get("slot 3") or {}).get("engine_fuel_type", "None") != "None" else 0}+B_{battery_power}" 
+                gen1_name_section = f"G1_{slot1_engine_db_idx+"_" + gen1_power_abb if (config.get("slot 1") or {}).get("engine_fuel_type", "None") != "None" else 0}:"
+                gen2_name_section = f"G2_{slot2_engine_db_idx+"_" + gen2_power_abb if (config.get("slot 2") or {}).get("engine_fuel_type", "None") != "None" else 0}:"
+                gen3_name_section = f"G3_{slot3_engine_db_idx+"_" + gen3_power_abb if (config.get("slot 3") or {}).get("engine_fuel_type", "None") != "None" else 0}:"
+                battery_name_section =f"{battery_db_idx+"_"+battery_abb+str(battery_count)+"_"+ str(battery_power)}"
+                
+                # Create simulation abbreviation
+                simName = f"{gen1_name_section + gen2_name_section + gen3_name_section + battery_name_section}" 
                 # Create power train sequence description
                 sequence_description = f"Gen1:[{slot1_engine}] → Gen2:[{slot2_engine}] → Gen3:[{slot3_engine}] + Batt:[{battery_count}x{battery_name}]"
                 
@@ -223,7 +233,9 @@ def simulate_batch():
                     "cost_placeholder",
                     "max_potential_gen_placeholder",
                     model_name,
-                    cur_optZonePairs
+                    cur_optZonePairs,
+                    battery_name,
+                    battery_count
                 )
                 temp_result_collection["batch_sim_res_collection"].append(simResult)
 
@@ -264,7 +276,8 @@ def simulate_batch():
             "avalible_batches" : avalible_batches
         })
 
-def process_simmultion_result(index, simName, sequence_description, total_cost, max_powertrain_gen ,model_name, optZonePairs):
+def process_simmultion_result(index, simName, sequence_description, total_cost, 
+                              max_powertrain_gen ,model_name, optZonePairs, batName, batCount):
     
     processed_simulation_result = {}
     try:
@@ -289,6 +302,8 @@ def process_simmultion_result(index, simName, sequence_description, total_cost, 
         #processed_simulation_result['gen_1_fuel_volume_flow (m^3/s)'] = df['generator1.V_flow_fuel'].tolist()
         #processed_simulation_result['gen_2_fuel_volume_flow (m^3/s)'] = df['generator2.V_flow_fuel'].tolist()
         #processed_simulation_result['gen_3_fuel_volume_flow (m^3/s)'] = df['generator3.V_flow_fuel'].tolist()
+        processed_simulation_result['battery_name'] = batName
+        processed_simulation_result['battery_count'] = batCount
         processed_simulation_result['battery_soc (%)'] = df['battery1.SOC'].tolist()
         processed_simulation_result['battery_discharge (KW)'] = [p / 1000 for p in df['battery1.P_discharge_abs'].tolist()]
         processed_simulation_result['battery_charge (KW)'] = [p / 1000 for p in df['battery1.P_charge_abs'].tolist()]
