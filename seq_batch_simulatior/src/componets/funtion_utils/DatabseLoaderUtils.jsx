@@ -98,7 +98,7 @@ function extractBattery (rows){
             battery_max_charge_power: voltage * current,
             battery_db_index:bat_db_idx,
             battery_abbreviation: bat_abb,
-            battery_cyce_limit:bat_cyl_lim
+            battery_cycle_limit:bat_cyl_lim
         });
         i++
     }
