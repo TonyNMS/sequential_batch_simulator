@@ -199,7 +199,19 @@ def simulate_batch():
                 slot1_engine_db_idx = (config.get("slot 1") or {}).get("engine_db_index", "None")
                 slot2_engine_db_idx = (config.get("slot 2") or {}).get("engine_db_index", "None")
                 slot3_engine_db_idx = (config.get("slot 3") or {}).get("engine_db_index", "None")
-
+                slot1_engine_mass = (config.get("slot 1") or {}).get("engine_mass", "None")
+                slot2_engine_mass = (config.get("slot 2") or {}).get("engine_mass", "None")
+                slot3_engine_mass = (config.get("slot 3") or {}).get("engine_mass", "None")
+                slot1_engine_volume = (config.get("slot 1") or {}).get("engine_volume", "None")
+                slot2_engine_volume = (config.get("slot 2") or {}).get("engine_volume", "None")
+                slot3_engine_volume = (config.get("slot 3") or {}).get("engine_volume", "None")
+                slot1_engine_cost = (config.get("slot 1") or {}).get("engine_cost", "None")
+                slot2_engine_cost = (config.get("slot 2") or {}).get("engine_cost", "None")
+                slot3_engine_cost = (config.get("slot 3") or {}).get("engine_cost", "None")
+                battery_cost = (config.get("battery") or {}).get("battery_cost", "None")
+                battery_cycle_limit = (config.get("battery") or {}).get("battery_cycke_limit", "None")
+                battery_volume =(config.get("battery") or {}).get("battery_volume", "None")
+                battery_mass=(config.get("battery") or {}).get("battery_mass", "None")
                 battery_name = (config.get("battery") or {}).get("battery_name", "None")
                 battery_count = config.get("battery_count", 0)
                 battery_db_idx = (config.get("battery") or {}).get("battery_db_index", "None")
@@ -225,7 +237,10 @@ def simulate_batch():
                 simName = f"{gen1_name_section + gen2_name_section + gen3_name_section + battery_name_section}" 
                 # Create power train sequence description
                 sequence_description = f"Gen1:[{slot1_engine}] → Gen2:[{slot2_engine}] → Gen3:[{slot3_engine}] + Batt:[{battery_count}x{battery_name}]"
-                
+                engine_mass = [slot1_engine_mass, slot2_engine_mass, slot3_engine_mass]
+                engine_volume =[slot1_engine_volume, slot2_engine_volume, slot3_engine_volume]
+                engine_cost =[slot1_engine_cost, slot2_engine_cost, slot3_engine_cost]
+                battery_specs = [battery_power, battery_cost, battery_cycle_limit,  battery_volume, battery_mass]
                 simResult = process_simmultion_result(
                     int(idx), 
                     simName,
@@ -235,7 +250,11 @@ def simulate_batch():
                     model_name,
                     cur_optZonePairs,
                     battery_name,
-                    battery_count
+                    battery_count,
+                    engine_mass,
+                    engine_volume,
+                    engine_cost,
+                    battery_specs
                 )
                 temp_result_collection["batch_sim_res_collection"].append(simResult)
 
@@ -277,7 +296,8 @@ def simulate_batch():
         })
 
 def process_simmultion_result(index, simName, sequence_description, total_cost, 
-                              max_powertrain_gen ,model_name, optZonePairs, batName, batCount):
+                              max_powertrain_gen ,model_name, optZonePairs, batName, batCount,
+                              engineMass, engineVolume, engineCost, batteryInfo):
     
     processed_simulation_result = {}
     try:
@@ -296,18 +316,27 @@ def process_simmultion_result(index, simName, sequence_description, total_cost,
         processed_simulation_result['iteration_id'] = index
         processed_simulation_result['time (h)'] = [t / 3600 for t in df['time'].tolist()]
         processed_simulation_result['power_demand (KW)'] = [p / 1000 for p in df['gain1.y'].tolist()]
+        
         processed_simulation_result['gen_1_power (KW)'] = [p / 1000 for p in df['generator1.P_out'].tolist()]
         processed_simulation_result['gen_2_power (KW)'] = [p / 1000 for p in df['generator2.P_out'].tolist()]
         processed_simulation_result['gen_3_power (KW)'] = [p / 1000 for p in df['generator3.P_out'].tolist()]
-        #processed_simulation_result['gen_1_fuel_volume_flow (m^3/s)'] = df['generator1.V_flow_fuel'].tolist()
-        #processed_simulation_result['gen_2_fuel_volume_flow (m^3/s)'] = df['generator2.V_flow_fuel'].tolist()
-        #processed_simulation_result['gen_3_fuel_volume_flow (m^3/s)'] = df['generator3.V_flow_fuel'].tolist()
+        
         processed_simulation_result['battery_name'] = batName
         processed_simulation_result['battery_count'] = batCount
         processed_simulation_result['battery_soc (%)'] = df['battery1.SOC'].tolist()
         processed_simulation_result['battery_discharge (KW)'] = [p / 1000 for p in df['battery1.P_discharge_abs'].tolist()]
         processed_simulation_result['battery_charge (KW)'] = [p / 1000 for p in df['battery1.P_charge_abs'].tolist()]
+        processed_simulation_result['Battery Charging Energy(kWh)'] = [p for p in df['realValue_bat_charging_energy.showNumber'].tolist()]
+        processed_simulation_result['Battery Discharging Energy(kWh)'] = [p for p in df['realValue_bat_discharging_energy.showNumber'].tolist()]
+
+
         processed_simulation_result['optimalZone'] = optZonePairs
+
+        processed_simulation_result['Total Gen1 Energy (kWh)'] = round (float(df['realValue_gen_energy1.showNumber'].iloc[-1]) , 2)
+        processed_simulation_result['Total Gen2 Energy (kWh)'] = round (float(df['realValue_gen_energy2.showNumber'].iloc[-1]) , 2)
+        processed_simulation_result['Total Gen3 Energy (kWh)'] = round (float(df['realValue_gen_energy3.showNumber'].iloc[-1]) , 2)
+        processed_simulation_result['Total Battery Charging Energy (kWh)'] = round (float(df['realValue_bat_charging_energy.showNumber'].iloc[-1]) , 2)
+        processed_simulation_result['Total Battery Discharging Energy (kWh)'] = round (float(df['realValue_bat_discharging_energy.showNumber'].iloc[-1]) , 2)
         processed_simulation_result['Total Energy Deamand (kWh)'] = float(df['realValueTotalDemand.showNumber'].iloc[-1])
         processed_simulation_result['Total Energy Supplied (kWh)'] = float(df['realValueTotalEnergySuppliedIncludingLoss.showNumber'].iloc[-1])
         print(f"[Total Energy Demand] : {float(df['realValueTotalDemand.showNumber'].iloc[-1])}")
@@ -315,9 +344,10 @@ def process_simmultion_result(index, simName, sequence_description, total_cost,
         processed_simulation_result['Total Energy Wasted (kWh)'] = float(df['realValueTotalWastedEnergy.showNumber'].iloc[-1])
         print(f"[Total Energy Wasted] : {float(df['realValueTotalWastedEnergy.showNumber'].iloc[-1])}")
         processed_simulation_result['Wasted Power (kW)'] = [p / 1000 for p in df['Surplus1.y'].tolist()]
-        #processed_simulation_result['battery_charge_energy (kWh)'] = (df['battery1.P_charge_abs']).tolist() 
-        #processed_simulation_result['battery_discharge_energy (kWh)'] = (df['battery1.P_discharge_abs']).tolist()
         processed_simulation_result['battery_measured_power (kW)'] = [p / 1000 for p in df['battery1.P_out'].tolist()]
+        processed_simulation_result['Gen1 Energy (kWh)'] = [p for p in df['realValue_gen_energy1.showNumber'].tolist()]
+        processed_simulation_result['Gen2 Energy (kWh)'] = [p for p in df['realValue_gen_energy2.showNumber'].tolist()]
+        processed_simulation_result['Gen3 Energy (kWh)'] = [p for p in df['realValue_gen_energy3.showNumber'].tolist()]
         # Extract fuel consumption values
         diesel_kg = float(df['realTotalDieselUsage.showNumber'].iloc[-1])
         methanol_kg = float(df['realTotalAltFuelUsage.showNumber'].iloc[-1])
@@ -345,6 +375,10 @@ def process_simmultion_result(index, simName, sequence_description, total_cost,
         processed_simulation_result['capital_cost (£)'] = total_cost
         processed_simulation_result['max_pwr_potential (KW)'] = max_powertrain_gen
         processed_simulation_result['peak_power_demand (KW)'] = (max(df['gain1.y'].tolist())) * (1/1000)
+        processed_simulation_result['Gen Costs'] = engineCost
+        processed_simulation_result['Gen Volumes'] = engineVolume
+        processed_simulation_result['Gen Mass'] = engineMass
+        processed_simulation_result['Battery Specs'] = batteryInfo
         #processed_simulation_result['node_tracker'] = df['masterControllerSingleBattery.methanolBatteryDieselDebug.nodeTracker'].tolist()
     except Exception as e:
         print(f"[simulate_batch_result_processing] ERROR: {e}")

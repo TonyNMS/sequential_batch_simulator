@@ -78,16 +78,22 @@ class ExcelGenerator:
             "Iteration ID",
             "Iteration Name",
             "Gen1 Name",
-            "Gen1 Lower",
-            "Gen1 Upper",
+            "Gen1 Lower (%)",
+            "Gen1 Upper (%)",
             "Gen2 Name",
-            "Gen2 Lower",
-            "Gen2 Upper",
+            "Gen2 Lower (%)",
+            "Gen2 Upper (%)",
             "Gen3 Name",
-            "Gen3 Lower",
-            "Gen3 Upper",
+            "Gen3 Lower (%)",
+            "Gen3 Upper (%)",
             "Battery Name",
             "Battery Count",
+            "Battery Rated Power (kW)",
+            "Total Gen1 Energy (kWh)",
+            "Total Gen2 Energy (kWh)",
+            "Total Gen3 Energy (kWh)",
+            "Total Battery Charging Energy (kWh)",
+            "Total Battery Discharging Energy (kWh)",
             "Diesel Usage (Ton)",
             "Methanol Usage (Ton)",
             "Hydrogen Usage (Ton)",
@@ -98,7 +104,20 @@ class ExcelGenerator:
             "Wasted Energy Significance Check",
             "Limitation Check",
             "CO2 Emission (Ton)",
-            "Penalty (EUR)"
+            "Penalty (EUR)",
+            "Gen1 Cost (EUR)",
+            "Gen2 Cost (EUR)",
+            "Gen3 Cost (EUR)",
+            "Battery Cost (EUR)",
+            "Battery Cycle Limit",
+            "Battery Total Mass (kg)",
+            "Battery Total Volume (m^3)",
+            "Gen1 Volume (m^3)",
+            "Gen2 Volume (m^3)",
+            "Gen3 Volume (m^3)",
+            "Gen1 Mass (KG)",
+            "Gen2 Mass (KG)",
+            "Gen3 Mass (KG)"
         ]
         ws.append(headers)
         
@@ -109,6 +128,10 @@ class ExcelGenerator:
             battery_name = iteration.get("battery_name", "N/A")
             battery_count = iteration.get("battery_count", "N/A")
             opt_zone = iteration.get("optimalZone", [0, 0, 0, 0, 0, 0])
+            gen_costs = iteration.get("Gen Costs", [0,0,0])
+            gen_mass = iteration.get("Gen Mass", [0,0,0])
+            gen_volume = iteration.get("Gen Volumes", [0,0,0])
+            battery_spec = iteration.get("Battery Specs", [0,0,0])
             energy_balance = "True" if iteration.get("Total Energy Wasted (kWh)") == 0 else "False"
             wastered_energy_significance_check = "True" if iteration.get("Total Energy Wasted (kWh)") >  10  else "False"
             limitation_check  = "Use Less Engine" if iteration.get("Total Energy Wasted (kWh)") >  10 else "Use More Battery" if  iteration.get("Total Energy Wasted (kWh)") < -10 else "None"
@@ -123,6 +146,12 @@ class ExcelGenerator:
                 gen_names[2], opt_zone[4] if len(opt_zone) > 4 else 0, opt_zone[5] if len(opt_zone) > 5 else 0,
                 battery_name,
                 battery_count,
+                battery_spec[0],
+                iteration.get("Total Gen1 Energy (kWh)", 0),
+                iteration.get("Total Gen2 Energy (kWh)", 0),
+                iteration.get("Total Gen3 Energy (kWh)", 0),
+                iteration.get("Total Battery Charging Energy (kWh)", 0),
+                iteration.get("Total Battery Discharging Energy (kWh)", 0),
                 iteration.get("diesel_usage (Ton)", 0),
                 iteration.get("meth_usage (Ton)", 0),
                 iteration.get("hydrogen_usage (Ton)", 0),
@@ -133,7 +162,20 @@ class ExcelGenerator:
                 wastered_energy_significance_check,
                 limitation_check,
                 iteration.get("CO2_emission (Ton)", 0),
-                iteration.get("penalty (EUR)", 0)
+                iteration.get("penalty (EUR)", 0),
+                gen_costs[0],
+                gen_costs[1],
+                gen_costs[2],
+                battery_spec[1],
+                battery_spec[2],
+                battery_spec[4],
+                battery_spec[3],
+                gen_volume[0],
+                gen_volume[1],
+                gen_volume[2],
+                gen_mass[0],
+                gen_mass[1],
+                gen_mass[2]
             ]
             ws.append(row)
         
@@ -213,13 +255,18 @@ class ExcelGenerator:
         # Headers for time series
         time_series_headers = [
             "Time (h)",
-            "Power Demand (KW)",
-            "Gen 1 Power (KW)",
-            "Gen 2 Power (KW)",
-            "Gen 3 Power (KW)",
+            "Power Demand (kW)",
+            "Gen 1 Power (kW)",
+            "Gen 2 Power (kW)",
+            "Gen 3 Power (kW)",
+            "Gen 1 Energy (kWh)",
+            "Gen 2 Energy (kWh)",
+            "Gen 3 Energy (kWh)",
             "Battery SOC (%)",
             "Battery Discharge (KW)",
             "Battery Charge (KW)",
+            "Battery Discharging Energy (kWh)",
+            "Battery Charging Energy(kWh)",
             "Wasted Power (KW)",
             "Battery Measured Power (kW)",
             "Inefficient Performance (KW)",
@@ -235,9 +282,14 @@ class ExcelGenerator:
         gen1_power = iteration.get("gen_1_power (KW)", [])
         gen2_power = iteration.get("gen_2_power (KW)", [])
         gen3_power = iteration.get("gen_3_power (KW)", [])
+        gen1_energy = iteration.get("Gen1 Energy (kWh)", [])
+        gen2_energy = iteration.get("Gen2 Energy (kWh)", [])
+        gen3_energy = iteration.get("Gen3 Energy (kWh)", [])
         battery_soc = iteration.get("battery_soc (%)", [])
         battery_discharge = iteration.get("battery_discharge (KW)", [])
         battery_charge = iteration.get("battery_charge (KW)", [])
+        battery_charge_energy = iteration.get("Battery Charging Energy(kWh)", [])
+        battery_discharge_energy =iteration.get("Battery Discharging Energy(kWh)", [])
         wasted_power = iteration.get("Wasted Power (kW)", [])
         battery_measured = iteration.get("battery_measured_power (kW)", [])
         over_supply =  [w if w > 0 else 0 for w in wasted_power]
@@ -254,9 +306,14 @@ class ExcelGenerator:
                 gen1_power[i] if i < len(gen1_power) else "",
                 gen2_power[i] if i < len(gen2_power) else "",
                 gen3_power[i] if i < len(gen3_power) else "",
+                gen1_energy[i] if i < len(gen1_energy) else "",
+                gen2_energy[i] if i < len(gen2_energy) else "",
+                gen3_energy[i] if i < len(gen3_energy) else "",
                 battery_soc[i] if i < len(battery_soc) else "",
                 battery_discharge[i] if i < len(battery_discharge) else "",
                 battery_charge[i] if i < len(battery_charge) else "",
+                battery_charge_energy[i] if i < len(battery_charge_energy) else "",
+                battery_discharge_energy[i] if i < len(battery_discharge_energy) else "",
                 wasted_power[i] if i < len(wasted_power) else "",
                 battery_measured[i] if i < len(battery_measured) else "",
                 over_supply[i] if i< len(over_supply) else "",

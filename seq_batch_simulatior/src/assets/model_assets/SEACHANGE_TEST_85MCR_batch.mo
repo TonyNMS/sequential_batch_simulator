@@ -74,7 +74,7 @@ model SEACHANGE_TEST_85MCR_batch
      
      algorithm 
       remainingAvalibleGeneratorPower := 0;
-    // loop every engine after the current engine ,  if the engine exist and the engine has fuel then add the power Reamaining Ava power
+// loop every engine after the current engine ,  if the engine exist and the engine has fuel then add the power Reamaining Ava power
       for i in currentGenIndex +1 : totalGenCount loop
         if engineExist[i] and engineHasFuel[i] then
           remainingAvalibleGeneratorPower :=  remainingAvalibleGeneratorPower +engineRatedPower[i];
@@ -111,7 +111,7 @@ model SEACHANGE_TEST_85MCR_batch
       Boolean isLast;
       Boolean needsCharge = chargeIntent > 0.5;
     algorithm
-    // --- 0) sanitize bounds: pIdle <= pLo <= pEff <= pHi <= pMax
+// --- 0) sanitize bounds: pIdle <= pLo <= pEff <= pHi <= pMax
       pIdle := max(0, P_idle);
       pMax := max(pIdle, P_max);
       pLo := min(max(pIdle, P_lo), pMax);
@@ -120,10 +120,10 @@ model SEACHANGE_TEST_85MCR_batch
       isLast := (current_engine_indx == last_active_engine_indx);
       cap := max(0, Battery_Capability);
     // --- 0) before selecting a generator output canidateyCand, check if there is fuel for this generator.
-    if generatorHasFuel then
+if generatorHasFuel then
             // --- 1) choose generator a policy target yCand (no battery applied yet) ---
-    if noEvent(demand <= 0) then
-    // No demand
+if noEvent(demand <= 0) then
+// No demand
             yCand := 0;
             tempNode := 1.1;
       /*
@@ -133,11 +133,11 @@ model SEACHANGE_TEST_85MCR_batch
               yCand  := 0; 
            end if;*/
      elseif noEvent(demand <= pIdle) then
-    // Below idle:
-    // if using battery:
-    //   - if batteryNeedsCharging: push gen to pIdle and charge with surplus
-    //   - else: if battery can cover, keep gen at 0; else gen at pIdle
-    // else (no battery): run at idle
+// Below idle:
+// if using battery:
+//   - if batteryNeedsCharging: push gen to pIdle and charge with surplus
+//   - else: if battery can cover, keep gen at 0; else gen at pIdle
+// else (no battery): run at idle
             if useBattery then
               if needsCharge then
                 yCand := min((demand + abs_battery_charging_limit), pEff);
@@ -164,7 +164,7 @@ model SEACHANGE_TEST_85MCR_batch
               tempNode := 1.4;
             end if;
      elseif noEvent(demand <= pLo) then
-    // Between idle and lower bound:
+// Between idle and lower bound:
             if useBattery then
               if needsCharge then
                 yCand := min((demand + abs_battery_charging_limit), pEff);
@@ -188,7 +188,7 @@ model SEACHANGE_TEST_85MCR_batch
               tempNode := 1.7;
             end if;
           elseif noEvent(demand <= pHi) then
-            // Inside the optimal band:
+// Inside the optimal band:
             if useBattery then
               if needsCharge then
                if noEvent(demand + abs_battery_charging_limit >= pHi) then // if the  demand + charging limit  is greater than pHi
@@ -213,7 +213,7 @@ model SEACHANGE_TEST_85MCR_batch
                         if noEvent(demand + abs_battery_charging_limit > pHi) then
                             yCand := pHi ;
                             tempNode := 2.12;
-    // Charing power should be at pHi - demand
+// Charing power should be at pHi - demand
                         else
                             yCand := demand + abs_battery_charging_limit;
                             tempNode := 2.13;
@@ -229,7 +229,7 @@ model SEACHANGE_TEST_85MCR_batch
               tempNode := 2.3;
             end if;
           elseif noEvent(demand <= pMax) then
-    // Between pHi and rated:
+// Between pHi and rated:
             if isLast then
               if useBattery then
                 if noEvent(current_SOC > 0.25) then
@@ -259,8 +259,8 @@ model SEACHANGE_TEST_85MCR_batch
             end if;
           else
     // If last gen: power demand exceed the pmax
-    //   if battery:
-              if isLast then
+//   if battery:
+if isLast then
                 if useBattery then
                   if (current_SOC > 0.25) then 
                                 if noEvent(demand <= pEff + cap) then
@@ -282,14 +282,14 @@ model SEACHANGE_TEST_85MCR_batch
                   end if;
                 else
                   yCand := pMax;
-    // this is the last generator and there is no battery , work as hard as possible
+// this is the last generator and there is no battery , work as hard as possible
                   tempNode := 4.1;
                 end if;
               else
                 if useBattery then
                   if noEvent(cap > 0) then
                     yCand := pHi;
-                    // non-last keeps pHi and passes the res
+// non-last keeps pHi and passes the res
                     tempNode := 4.2;
                   else
                     if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
@@ -312,18 +312,18 @@ model SEACHANGE_TEST_85MCR_batch
               end if;
             end if;
       else
-    // no power production if no fuel.
+// no power production if no fuel.
           yCand := 0;
           tempNode  :=1.1;
       end if;
-    // Final clamp for safety, making sure yCand is bigger than 0 and smaller than pMax
+// Final clamp for safety, making sure yCand is bigger than 0 and smaller than pMax
       yCand := min(max(yCand, 0), pMax );
-    // --- 2) settlement: compute surplus/shortfall and battery/pass-down ---
+// --- 2) settlement: compute surplus/shortfall and battery/pass-down ---
       charging_gen := 0;
       battery_gen := 0;
       surplus := max(yCand - demand, 0);
-    // if the generate is assigned with a number that can result in a surplus
-    // new addition : checking if the surpulse is greater than battery max chargin rate
+// if the generate is assigned with a number that can result in a surplus
+// new addition : checking if the surpulse is greater than battery max chargin rate
       if noEvent(surplus > 0) then
         if  useBattery then //  and needsCharge
           if noEvent(surplus > abs_battery_charging_limit) then
@@ -531,7 +531,7 @@ model SEACHANGE_TEST_85MCR_batch
     Real P_cap_now "available discharge cap now (W)";
     Real P_charge_cap_now "available charge cap now (W)";
     //---------------- Local smoothstep helper ----------------
-    
+
     function smoothStepCubic
       input Real u "0..1-ish";
       output Real y;
@@ -541,7 +541,7 @@ model SEACHANGE_TEST_85MCR_batch
       elseif u >= 1 then
         y := 1;
       else
-    // classic cubic smoothstep: 3u^2 - 2u^3
+// classic cubic smoothstep: 3u^2 - 2u^3
         y := 3*u*u - 2*u*u*u;
       end if;
     end smoothStepCubic;
@@ -549,13 +549,13 @@ model SEACHANGE_TEST_85MCR_batch
     
     
     algorithm
-    // SoC hysteresis for "needs charging"
+// SoC hysteresis for "needs charging"
     when initial() or SOC_1 <= SOC_min or SOC_1 >= SOC_max then
       batNeedsChargingR := if SOC_1 <= SOC_min then 1 elseif SOC_1 >= SOC_max then 0 else pre(batNeedsChargingR);
     end when;
     
     equation
-    //---------------- Map optimal bounds to arrays ----------------
+//---------------- Map optimal bounds to arrays ----------------
     P_opt_lo = {P_gen_1_Optim_Lower, P_gen_2_Optim_Lower, P_gen_3_Optim_Lower, P_gen_4_Optim_Lower, P_gen_5_Optim_Lower, P_gen_6_Optim_Lower, P_gen_7_Optim_Lower, P_gen_8_Optim_Lower, P_gen_9_Optim_Lower, P_gen_10_Optim_Lower};
     P_opt_hi = {P_gen_1_Optim_Upper, P_gen_2_Optim_Upper, P_gen_3_Optim_Upper, P_gen_4_Optim_Upper, P_gen_5_Optim_Upper, P_gen_6_Optim_Upper, P_gen_7_Optim_Upper, P_gen_8_Optim_Upper, P_gen_9_Optim_Upper, P_gen_10_Optim_Upper};
     P_most_eff = {genMostEffPwr1, genMostEffPwr2, genMostEffPwr3, genMostEffPwr4, genMostEffPwr5, genMostEffPwr6, genMostEffPwr7, genMostEffPwr8, genMostEffPwr9, genMostEffPwr10};
@@ -572,20 +572,20 @@ model SEACHANGE_TEST_85MCR_batch
       determineIfEngineHasFuel(currentGenIdx = 9, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
       determineIfEngineHasFuel(currentGenIdx = 10, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type,fuelUsageByType= FuelUsageByType)
     };
-    // Generator_has_fuel{};
-    //P_node_collection ={gen1Node,gen2Node,gen3Node,gen4Node,gen5Node,gen6Node,gen7Node,gen8Node,gen9Node,gen10Node};
-    //---------------- Smooth caps from SoC ----------------
-    // discharge allowed ramps in above SOC_min
+// Generator_has_fuel{};
+//P_node_collection ={gen1Node,gen2Node,gen3Node,gen4Node,gen5Node,gen6Node,gen7Node,gen8Node,gen9Node,gen10Node};
+//---------------- Smooth caps from SoC ----------------
+// discharge allowed ramps in above SOC_min
     smooth_soc_min = smoothStepCubic((SOC_1 - SOC_min)/max(1e-6, smooth_charge_percentage));
-    // charge allowed ramps out as we pass SOC_max
+// charge allowed ramps out as we pass SOC_max
     smooth_soc_max = 1 - smoothStepCubic((SOC_1 - SOC_max)/max(1e-6, smooth_charge_percentage));
     P_cap_now = if batteryInstalled and not batNeedsCharging then min(P_discharging_max, min(0, smooth_soc_min*P_rated_battery)*(-1))*(-1) else 0;
     P_charge_cap_now = if batteryInstalled then min(P_charging_max, max(0, smooth_soc_max*P_charging_max)) else 0;
-    //---------------- Seed remainder with demand (>=0) ----------------
+//---------------- Seed remainder with demand (>=0) ----------------
     P_rem[1] = max(P_load_1, 0);
-    //calculateRemainingAvailableGeneratorPower2(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist )
-    //sum( if gen_exist[j] then max(0, P_rated[j]) else 0 for j in i+1:N )
-    //---------------- Greedy pass across ALL generators ( in the model) ----------------
+//calculateRemainingAvailableGeneratorPower2(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist )
+//sum( if gen_exist[j] then max(0, P_rated[j]) else 0 for j in i+1:N )
+//---------------- Greedy pass across ALL generators ( in the model) ----------------
     for i in 1:N loop
       
       if gen_exist[i] then
@@ -610,12 +610,12 @@ model SEACHANGE_TEST_85MCR_batch
         P_rem[i + 1] = P_unmet_each[i];
       end if;
     end for;
-    //---------------- Battery aggregation ----------------
-    // discharge to bus: only last stage uses battery; but sum() is fine (others are 0)
+//---------------- Battery aggregation ----------------
+// discharge to bus: only last stage uses battery; but sum() is fine (others are 0)
     P_battery_1 = min(sum(P_bat_each), P_cap_now);
-    // charge request: cap to charger/SoC limit (positive means "please charge by this much")
+// charge request: cap to charger/SoC limit (positive means "please charge by this much")
     P_batt_charge_request = min(sum(P_charge_each), P_charge_cap_now);
-    //---------------- Expose per-gen outputs ----------------
+//---------------- Expose per-gen outputs ----------------
     gen1_output = P_gen_cmd[1]/gen_1_rated_gen;
     gen2_output = P_gen_cmd[2]/gen_2_rated_gen;
     gen3_output = P_gen_cmd[3]/gen_3_rated_gen;
@@ -5989,7 +5989,7 @@ if isLast then
   Modelica.Blocks.Continuous.Integrator integratorTotaEnergy1 annotation(
     Placement(transformation(origin = {-336, -458}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Math.Division divisiontotalEnergyProvidedJ2kWh1 annotation(
-    Placement(transformation(origin = {-276, -458}, extent = {{-10, -10}, {10, 10}})));
+    Placement(transformation(origin = {-278, -458}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Interaction.Show.RealValue realValueTotalEnergySuppliedExcludingCharging annotation(
     Placement(transformation(origin = {-236, -458}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression realExpressionTotalEnergyBatteryDischargeOnly(y = (((if gen1_is_on then generator1.P_out else 0) + (if gen2_is_on then generator2.P_out else 0) + (if gen3_is_on then generator3.P_out else 0) + (if gen4_is_on then generator4.P_out else 0) + (if gen5_is_on then generator5.P_out else 0) + (if gen6_is_on then generator6.P_out else 0) + (if gen7_is_on then generator7.P_out else 0) + (if gen8_is_on then generator8.P_out else 0) + (if gen9_is_on then generator9.P_out else 0) + (if gen10_is_on then generator10.P_out else 0)) + (if battery_P_max > 1 then battery1.P_discharge_abs else 0))) annotation(
@@ -6052,6 +6052,104 @@ if isLast then
   (if noEvent(generator_Frho_9 == 1) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
   (if noEvent(generator_Frho_10 == 1) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
     Placement(transformation(origin = {-170, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy1(y = generator1.P_out)  annotation(
+    Placement(transformation(origin = {-10, -310}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy2(y = generator2.P_out)  annotation(
+    Placement(transformation(origin = {-10, -330}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy3(y = generator3.P_out)  annotation(
+    Placement(transformation(origin = {-10, -350}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy4(y = generator4.P_out)  annotation(
+    Placement(transformation(origin = {-10, -370}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy5(y = generator5.P_out)  annotation(
+    Placement(transformation(origin = {-10, -390}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy6(y = generator6.P_out)  annotation(
+    Placement(transformation(origin = {-10, -410}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy7(y = generator7.P_out)  annotation(
+    Placement(transformation(origin = {-10, -430}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy8(y = generator8.P_out)  annotation(
+    Placement(transformation(origin = {-10, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy9(y = generator9.P_out)  annotation(
+    Placement(transformation(origin = {-10, -470}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression gen_energy10(y = generator10.P_out)  annotation(
+    Placement(transformation(origin = {-10, -490}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression bat_discharge_energy(y = battery1.P_discharge_abs)  annotation(
+    Placement(transformation(origin = {-10, -530}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression battery_charging_energy(y = battery1.P_charge_abs)  annotation(
+    Placement(transformation(origin = {-10, -550}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy1 annotation(
+    Placement(transformation(origin = {30, -310}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy2 annotation(
+    Placement(transformation(origin = {30, -330}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy3 annotation(
+    Placement(transformation(origin = {30, -350}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy4 annotation(
+    Placement(transformation(origin = {30, -370}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy5 annotation(
+    Placement(transformation(origin = {30, -390}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy6 annotation(
+    Placement(transformation(origin = {30, -410}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy7 annotation(
+    Placement(transformation(origin = {30, -430}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy8 annotation(
+    Placement(transformation(origin = {30, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy10 annotation(
+    Placement(transformation(origin = {30, -490}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_gen_energy9 annotation(
+    Placement(transformation(origin = {30, -470}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_bat_discharge_energy annotation(
+    Placement(transformation(origin = {30, -530}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.Integrator integrator_bat_charge_energy annotation(
+    Placement(transformation(origin = {30, -550}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_bat_charging_energy annotation(
+    Placement(transformation(origin = {110, -550}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy1 annotation(
+    Placement(transformation(origin = {110, -310}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy2 annotation(
+    Placement(transformation(origin = {110, -330}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy3 annotation(
+    Placement(transformation(origin = {110, -350}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy4 annotation(
+    Placement(transformation(origin = {110, -370}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy5 annotation(
+    Placement(transformation(origin = {110, -390}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy6 annotation(
+    Placement(transformation(origin = {110, -410}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy7 annotation(
+    Placement(transformation(origin = {110, -430}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy8 annotation(
+    Placement(transformation(origin = {110, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy9 annotation(
+    Placement(transformation(origin = {110, -470}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_gen_energy10 annotation(
+    Placement(transformation(origin = {110, -490}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Interaction.Show.RealValue realValue_bat_discharging_energy annotation(
+    Placement(transformation(origin = {110, -530}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Sources.RealExpression realExpressionJ2kWh1(y = 3.6e6) annotation(
+    Placement(transformation(origin = {50, -270}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+  Modelica.Blocks.Math.Division divisionGenEnergy1 annotation(
+    Placement(transformation(origin = {70, -310}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy2 annotation(
+    Placement(transformation(origin = {70, -330}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy3 annotation(
+    Placement(transformation(origin = {70, -350}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy4 annotation(
+    Placement(transformation(origin = {70, -370}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy5 annotation(
+    Placement(transformation(origin = {70, -390}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy6 annotation(
+    Placement(transformation(origin = {70, -410}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy7 annotation(
+    Placement(transformation(origin = {70, -430}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy8 annotation(
+    Placement(transformation(origin = {70, -450}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy9 annotation(
+    Placement(transformation(origin = {70, -470}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy10 annotation(
+    Placement(transformation(origin = {70, -492}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy11 annotation(
+    Placement(transformation(origin = {70, -530}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Division divisionGenEnergy12 annotation(
+    Placement(transformation(origin = {70, -550}, extent = {{-10, -10}, {10, 10}})));
 initial equation
   fuelUsage1 = 0;
   fuelUsage2 = 0;
@@ -6409,11 +6507,11 @@ equation
   connect(TotalEngergy1.y, integratorTotaEnergy1.u) annotation(
     Line(points = {{-363, -458}, {-348, -458}}, color = {0, 0, 127}));
   connect(integratorTotaEnergy1.y, divisiontotalEnergyProvidedJ2kWh1.u1) annotation(
-    Line(points = {{-325, -458}, {-321, -458}, {-321, -452}, {-288, -452}}, color = {0, 0, 127}));
+    Line(points = {{-325, -458}, {-321, -458}, {-321, -452}, {-290, -452}}, color = {0, 0, 127}));
   connect(realExpressionJ2kWh.y, divisiontotalEnergyProvidedJ2kWh1.u2) annotation(
-    Line(points = {{-309, -430}, {-307, -430}, {-307, -442}, {-319, -442}, {-319, -464}, {-289, -464}}, color = {0, 0, 127}));
+    Line(points = {{-309, -430}, {-307, -430}, {-307, -442}, {-319, -442}, {-319, -464}, {-290, -464}}, color = {0, 0, 127}));
   connect(divisiontotalEnergyProvidedJ2kWh1.y, realValueTotalEnergySuppliedExcludingCharging.numberPort) annotation(
-    Line(points = {{-265, -458}, {-249, -458}}, color = {0, 0, 127}));
+    Line(points = {{-267, -458}, {-249, -458}}, color = {0, 0, 127}));
   connect(realExpressionTotalEnergyBatteryDischargeOnly.y, integrator.u) annotation(
     Line(points = {{-362, -490}, {-356, -490}, {-356, -492}, {-348, -492}}, color = {0, 0, 127}));
   connect(integrator.y, division.u1) annotation(
@@ -6439,11 +6537,107 @@ equation
   connect(altFuelUsageIntegrator.y, individualEngineController.altFuelUsageController) annotation(
     Line(points = {{-99, -420}, {-94, -420}, {-94, 47}, {-130, 47}}, color = {0, 0, 127}));
   connect(individualEngineController.hydrolUsageController, hydroUsgaeIntegrator.y) annotation(
-    Line(points = {{-130, 43}, {-102, 43}, {-102, -282}, {-76, -282}, {-76, -370}, {-98, -370}}, color = {0, 0, 127}));
+    Line(points = {{-130, 43}, {-102, 43}, {-102, -282}, {-70, -282}, {-70, -370}, {-98, -370}}, color = {0, 0, 127}));
+  connect(gen_energy1.y, integrator_gen_energy1.u) annotation(
+    Line(points = {{2, -310}, {18, -310}}, color = {0, 0, 127}));
+  connect(gen_energy2.y, integrator_gen_energy2.u) annotation(
+    Line(points = {{2, -330}, {18, -330}}, color = {0, 0, 127}));
+  connect(gen_energy3.y, integrator_gen_energy3.u) annotation(
+    Line(points = {{2, -350}, {18, -350}}, color = {0, 0, 127}));
+  connect(gen_energy4.y, integrator_gen_energy4.u) annotation(
+    Line(points = {{2, -370}, {18, -370}}, color = {0, 0, 127}));
+  connect(gen_energy5.y, integrator_gen_energy5.u) annotation(
+    Line(points = {{2, -390}, {18, -390}}, color = {0, 0, 127}));
+  connect(gen_energy6.y, integrator_gen_energy6.u) annotation(
+    Line(points = {{2, -410}, {18, -410}}, color = {0, 0, 127}));
+  connect(gen_energy7.y, integrator_gen_energy7.u) annotation(
+    Line(points = {{2, -430}, {18, -430}}, color = {0, 0, 127}));
+  connect(gen_energy8.y, integrator_gen_energy8.u) annotation(
+    Line(points = {{2, -450}, {18, -450}}, color = {0, 0, 127}));
+  connect(gen_energy9.y, integrator_gen_energy9.u) annotation(
+    Line(points = {{2, -470}, {18, -470}}, color = {0, 0, 127}));
+  connect(gen_energy10.y, integrator_gen_energy10.u) annotation(
+    Line(points = {{2, -490}, {18, -490}}, color = {0, 0, 127}));
+  connect(bat_discharge_energy.y, integrator_bat_discharge_energy.u) annotation(
+    Line(points = {{1, -530}, {17, -530}}, color = {0, 0, 127}));
+  connect(battery_charging_energy.y, integrator_bat_charge_energy.u) annotation(
+    Line(points = {{1, -550}, {17, -550}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy1.y, divisionGenEnergy1.u1) annotation(
+    Line(points = {{42, -310}, {44, -310}, {44, -304}, {58, -304}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy2.y, divisionGenEnergy2.u1) annotation(
+    Line(points = {{42, -330}, {48, -330}, {48, -324}, {58, -324}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy3.y, divisionGenEnergy3.u1) annotation(
+    Line(points = {{42, -350}, {50, -350}, {50, -344}, {58, -344}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy5.y, divisionGenEnergy5.u1) annotation(
+    Line(points = {{42, -390}, {48, -390}, {48, -384}, {58, -384}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy4.y, divisionGenEnergy4.u1) annotation(
+    Line(points = {{42, -370}, {50, -370}, {50, -364}, {58, -364}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy8.y, divisionGenEnergy8.u1) annotation(
+    Line(points = {{42, -450}, {50, -450}, {50, -444}, {58, -444}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy6.y, divisionGenEnergy6.u1) annotation(
+    Line(points = {{42, -410}, {48, -410}, {48, -404}, {58, -404}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy7.y, divisionGenEnergy7.u1) annotation(
+    Line(points = {{42, -430}, {50, -430}, {50, -424}, {58, -424}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy9.y, divisionGenEnergy9.u1) annotation(
+    Line(points = {{42, -470}, {50, -470}, {50, -464}, {58, -464}}, color = {0, 0, 127}));
+  connect(integrator_gen_energy10.y, divisionGenEnergy10.u1) annotation(
+    Line(points = {{42, -490}, {50, -490}, {50, -486}, {58, -486}}, color = {0, 0, 127}));
+  connect(integrator_bat_discharge_energy.y, divisionGenEnergy11.u1) annotation(
+    Line(points = {{42, -530}, {48, -530}, {48, -524}, {58, -524}}, color = {0, 0, 127}));
+  connect(integrator_bat_charge_energy.y, divisionGenEnergy12.u1) annotation(
+    Line(points = {{42, -550}, {48, -550}, {48, -544}, {58, -544}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy1.u2) annotation(
+    Line(points = {{50, -280}, {50, -316}, {58, -316}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy2.u2) annotation(
+    Line(points = {{50, -280}, {50, -336}, {58, -336}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy3.u2) annotation(
+    Line(points = {{50, -280}, {50, -356}, {58, -356}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy4.u2) annotation(
+    Line(points = {{50, -280}, {50, -376}, {58, -376}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy5.u2) annotation(
+    Line(points = {{50, -280}, {50, -396}, {58, -396}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy7.u2) annotation(
+    Line(points = {{50, -280}, {50, -436}, {58, -436}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy6.u2) annotation(
+    Line(points = {{50, -280}, {50, -416}, {58, -416}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy8.u2) annotation(
+    Line(points = {{50, -280}, {50, -456}, {58, -456}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy9.u2) annotation(
+    Line(points = {{50, -280}, {50, -476}, {58, -476}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy10.u2) annotation(
+    Line(points = {{50, -280}, {50, -498}, {58, -498}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy1.y, realValue_gen_energy1.numberPort) annotation(
+    Line(points = {{82, -310}, {98, -310}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy2.y, realValue_gen_energy2.numberPort) annotation(
+    Line(points = {{82, -330}, {98, -330}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy3.y, realValue_gen_energy3.numberPort) annotation(
+    Line(points = {{82, -350}, {98, -350}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy5.y, realValue_gen_energy5.numberPort) annotation(
+    Line(points = {{82, -390}, {98, -390}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy6.y, realValue_gen_energy6.numberPort) annotation(
+    Line(points = {{82, -410}, {98, -410}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy7.y, realValue_gen_energy7.numberPort) annotation(
+    Line(points = {{82, -430}, {98, -430}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy8.y, realValue_gen_energy8.numberPort) annotation(
+    Line(points = {{82, -450}, {98, -450}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy9.y, realValue_gen_energy9.numberPort) annotation(
+    Line(points = {{82, -470}, {98, -470}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy10.y, realValue_gen_energy10.numberPort) annotation(
+    Line(points = {{81, -492}, {89.5, -492}, {89.5, -490}, {98, -490}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy11.y, realValue_bat_discharging_energy.numberPort) annotation(
+    Line(points = {{82, -530}, {98, -530}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy12.y, realValue_bat_charging_energy.numberPort) annotation(
+    Line(points = {{82, -550}, {98, -550}}, color = {0, 0, 127}));
+  connect(divisionGenEnergy4.y, realValue_gen_energy4.numberPort) annotation(
+    Line(points = {{82, -370}, {98, -370}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy11.u2) annotation(
+    Line(points = {{50, -280}, {50, -536}, {58, -536}}, color = {0, 0, 127}));
+  connect(realExpressionJ2kWh1.y, divisionGenEnergy12.u2) annotation(
+    Line(points = {{50, -280}, {50, -556}, {58, -556}}, color = {0, 0, 127}));
   annotation(
     Icon(graphics = {Rectangle(origin = {40, -40}, fillColor = {0, 170, 255}, fillPattern = FillPattern.HorizontalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {40, 40}, fillColor = {85, 85, 255}, fillPattern = FillPattern.VerticalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {-40, -40}, fillColor = {85, 85, 255}, fillPattern = FillPattern.VerticalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {40, -40}, fillColor = {0, 170, 255}, fillPattern = FillPattern.HorizontalCylinder, extent = {{-40, 40}, {40, -40}}), Rectangle(origin = {-40, 40}, fillColor = {0, 170, 255}, fillPattern = FillPattern.HorizontalCylinder, extent = {{-40, 40}, {40, -40}})}),
     uses(Modelica(version = "4.0.0")),
-    Diagram(coordinateSystem(extent = {{-520, 320}, {320, -520}})),
+    Diagram(coordinateSystem(extent = {{-520, 320}, {320, -560}})),
     version = "",
     __OpenModelica_commandLineOptions = "--matchingAlgorithm=PFPlusExt --indexReductionMethod=dynamicStateSelection -d=NLSanalyticJacobian",
     __OpenModelica_simulationFlags(lv = "LOG_STDOUT,LOG_ASSERT,LOG_STATS", s = "dassl", variableFilter = ".*"));

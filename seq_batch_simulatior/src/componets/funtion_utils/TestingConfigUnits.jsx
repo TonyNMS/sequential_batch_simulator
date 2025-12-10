@@ -48,6 +48,7 @@ export const singleIteration =[{
                 "battery_max_charge_power": 255744,
                 "battery_db_index" :"B1",
                 "battery_abbreviation": "DP1",
+                "battery_cycke_limit":1000
             },
             "battery_count": 0,
             "check": true
