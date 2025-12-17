@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useRef, useState } from "react";
 import { buildCombinations, commitBatchSimulation, markUnrealisticCombos, modelicaParameterMapping, filterIncapbleSystem, parseDutyCycle } from "../funtion_utils/SimulateSectionUtil.jsx";
-import { BatteryListContext, DieselEngienListContext, FuelCellListContext, MethanolEngineListContext } from "../../App";
+import { BatteryListContext, DieselEngienListContext, FuelCellListContext, MethanolEngineListContext, DutyCycleContext } from "../../App";
 import { dutyCycleInfo, singleIteration } from "../funtion_utils/TestingConfigUnits.jsx";
 
 const  POSSIBLE_BATTERY_COUNT = [0,1,5,10]
@@ -13,12 +13,13 @@ const SimulateSection =()=>{
      * Then Update the Result Context
      */
     const  [simulationStatus, setSimulationStatus] = useState();
-    const  [engineSlots, setEngineSlots] = useState(2);
+    const  [engineSlots, setEngineSlots] = useState(1);
     const  egnine_slots_input = useRef(null);
     const  [dieGenObjList, setDiegenObjList] = useContext(DieselEngienListContext);
     const  [methGenObjList, setMethGenObjList] = useContext(MethanolEngineListContext);
     const  [batObjList, setBatObjList] = useContext(BatteryListContext);
     const  [fcObjList, setFCObjList] = useContext(FuelCellListContext);
+    const  [dutyCycleObject, setDutyCycleObject] = useContext(DutyCycleContext);
     async function handleSimulation () {
         /**
          * @call buildCombinations()
@@ -57,9 +58,6 @@ const SimulateSection =()=>{
         console.log(dutyCycleInfo)
         //At this point all prepation has completed
         // Prepare to talk to the backend
-
-    
-        
         await commitBatchSimulation({ moParams:mappedParameters, startTime: dutyCycleInfo.startTime.toString(), 
             endTime:dutyCycleInfo.endTime.toString(), modelName:"SEACHANGE_TEST_85MCR_batch", numSlot: engineSlots});
     }
@@ -89,7 +87,6 @@ const SimulateSection =()=>{
             <input 
                 type="number"
                 placeholder="Enter an integer from 1 to 10" 
-                defaultValue={2}
                 value = {engineSlots}
                 ref ={egnine_slots_input}
                 id="engine_slots_input"></input>

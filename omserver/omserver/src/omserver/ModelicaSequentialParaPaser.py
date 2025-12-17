@@ -11,7 +11,30 @@ class ModelicaSequentialParamParser:
         self.bsfc_list = bsfc_list
         self.fuelConsumptionTable = fuelConsumptionTable
         self.gen_is_on_list = gen_is_on_list if gen_is_on_list else []
-        
+    def initilize_generator_switch(self) -> bool:
+        """
+        Set all parameter Boolean gen{N}_is_on = (true|false) to false in the .mo file.
+        """
+        try:
+            path_to_mo = Path(current_app.instance_path) / f"{self.modelName}.mo"
+            content = self._read_mo_file(str(path_to_mo))
+            if not content:
+                print("[initilize_generator_switch] Reading Content Error")
+                return False
+
+            modified_content, count = self._set_all_generators_off(content)
+
+            if count == 0:
+                print("[initilize_generator_switch] No gen*_is_on parameters found.")
+            else:
+                print(f"[initilize_generator_switch] Set {count} generator switch(es) to false.")
+
+            return self._write_to_mo_file(path_to_mo, modified_content)
+
+        except Exception as e:
+            print(f"[initilize_generator_switch] ERROR: {e}")
+            return False
+
     def update_modelica_txt_formate(self):
          
         try:
@@ -20,7 +43,7 @@ class ModelicaSequentialParamParser:
             
             # Extract the content of mo file
             content = self._read_mo_file(str(path_to_mo))
-            # print("Reading Modelica File Done")  # Disabled
+          
             
             if content == "":
                 print("Reading Content Error")
@@ -151,3 +174,14 @@ class ModelicaSequentialParamParser:
         except Exception as e:
             print(f"[_write_to_mo_file] ERROR: {e}")
             return False  
+    def _set_all_generators_off(self, content: str):
+        """
+        Replace any:
+        parameter Boolean gen<number>_is_on = true|false;
+        with:
+        parameter Boolean gen<number>_is_on = false;
+        """
+        pattern = r'(\bparameter\s+Boolean\s+gen\d+_is_on\s*=\s*)(true|false)(\s*;)'
+        replacement = r'\1false\3'
+        modified, count = re.subn(pattern, replacement, content)
+        return modified, count

@@ -5,6 +5,7 @@ import VesselSpectIput from './componets/ui/VesselSpectInput';
 import DataBaseLoader from './componets/ui/DataBaseLoder';
 import ModelSelector from './componets/ui/ModelSelector';
 import SimulateSection from './componets/ui/SimulateSection';
+import DutyCycleLoader from './componets/ui/DutyCycleLoader';
 
 export const DieselEngienListContext = createContext();
 export const MethanolEngineListContext = createContext();
@@ -42,7 +43,7 @@ function App() {
   const [systemTotalVolume, setSystemTotalVolume] = useState(0);
   const [weightLimit, setWeightLimit] = useState(0);
   const [volumeLimit, setVolumeLimit] = useState(0);
-  const [dutyCycle, setDutyCycle] = useState([]);
+  const [dutyCycle, setDutyCycle] = useState({});
   const [vesselNameTaskName, setVesselNameTaskName] = useState([])
   const [batchSimResult, setBatchSimResult] = useState([])
   return (
@@ -61,6 +62,7 @@ function App() {
                             <VesselNameTaskName.Provider value ={[vesselNameTaskName, setVesselNameTaskName]}>
                               <BatchSimResults.Provider value = {[batchSimResult, setBatchSimResult]}>
                                 <VesselSpectIput></VesselSpectIput>
+                                <DutyCycleLoader></DutyCycleLoader>
                                 <DataBaseLoader></DataBaseLoader>
                                 <ModelSelector></ModelSelector>
                                 <SimulateSection></SimulateSection>

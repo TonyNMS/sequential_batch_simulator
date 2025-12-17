@@ -1,7 +1,7 @@
 import React from "react";
 import DutyCycle from "../../assets/model_assets/2024-04_FC_Cardinal_buoy_maintenance Adjusted Again85.txt?url"
-
-
+import StartBoardDutyCycle from "../../assets/model_assets/2024-04_FC_Cardinal_buoy_maintenance Starboard.txt?url"
+import PortSideDutyCycle from  "../../assets/model_assets/2024-04_FC_Cardinal_buoy_maintenance Portside.txt?url"
 
 export async function buildCombinations(dieList, methList, fcList, batList,  POS_BAT_COUNT, POS_OPT_LOW, POS_OPT_HIGHER, numSlots){
     /**
@@ -42,7 +42,7 @@ export async function buildCombinations(dieList, methList, fcList, batList,  POS
 }
   
 export async function parseDutyCycle() {
-  const res = await fetch(DutyCycle);
+  const res = await fetch(PortSideDutyCycle);
   const text = await res.text();
 
   const lines = text.trim().split(/\r?\n/);
@@ -226,7 +226,6 @@ function sequencesOfLength(oengineOptions, length){
     }
     return result;
 }
-
 
 function generateSlotConfigs(engineOptions, numSlots) {
    /**

@@ -16,6 +16,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from .OMCConnection import OMCConnection
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
+from werkzeug.utils import secure_filename
 from omserver.ExcelGenerator import ExcelGenerator
 bp = Blueprint("seq_model", __name__, url_prefix="/seq_model")
 CORS(bp)
@@ -83,7 +84,6 @@ def simulate_batch():
         "batch_sim_res_collection"  : []
     }
 
-    # Looping Start
     try:
         # Looping Start
         for idx, cfg in enumerate(combos):
@@ -98,16 +98,17 @@ def simulate_batch():
                     temp_fcc_list.append(slot.get("engine_fcc", ""))
                     temp_bsfc_list.append(slot.get("engine_bsfc", ""))
                     temp_gen_is_on_list.append(True)  # Engine exists, should be on
-                    # print(f"Slot {i}: {slot.get('engine_name', 'Unknown')} engine loaded")  # Disabled
                 else:
                     temp_fcc_list.append("")
                     temp_bsfc_list.append("")
                     temp_gen_is_on_list.append(False)  # No engine, should be off
-                    # print(f"Slot {i} has No Engine - skipping")  # Disabled
             print(f"FCC list: {temp_fcc_list}")
             print(f"BSFC list: {temp_bsfc_list}")
             print(f"Generator ON/OFF: {temp_gen_is_on_list}")
             modelicaArrayParser = ModelicaSequentialParamParser(model_name, temp_bsfc_list, temp_fcc_list, temp_gen_is_on_list)
+            # Set all generator switch to false
+            # Then set the generator switch for this run, this aviods mismatching caused by left over from  previous simulation 
+            modelicaArrayParser.initilize_generator_switch()
             modelicaArrayParser.update_modelica_txt_formate()
         
             # Log Simulation Detail
@@ -122,14 +123,7 @@ def simulate_batch():
             
             print(f"  Config: Gen1:[{slot1_name}] Gen2:[{slot2_name}] Gen3:[{slot3_name}] Battery:[{battery_count_log}x{battery_name_log}]")
             
-            
-            #Form the total cost of the configuration
-            #cost  = float(cfg.get("instance").get("Diesel_Engine").get("engine_cost")) * int(cfg.get("instance").get("Diesel_Engine_Count"))+ float(cfg.get("instance").get("Meth_Engine").get("engine_cost")) * int(cfg.get("instance").get("Meth_Count"))+ float(cfg.get("instance").get("Battery").get("battery_cost"))* int(cfg.get("instance").get("Battery_Count"))
-            #print(f"Cost of  Setup : {cost}  £  ")
-
-            #Form the max potential power output of the power train
-            #max_potential_gen = float(cfg.get("instance").get("Diesel_Engine").get("engine_p_max")) * float(cfg.get("instance").get("Diesel_Engine_Count")) + float(cfg.get("instance").get("Meth_Engine").get("engine_p_max")) * float(cfg.get("instance").get("Meth_Count"))+ float(cfg.get("instance").get("Battery").get("battery_max_charge_power"))* (1/1000)* float(cfg.get("instance").get("Battery_Count"))
-            #print(f"Max Possible Power {max_potential_gen} w")
+        
             
             # Unpack the parameter list
             overrides_list = cfg.get("modelica_parameters", [])
@@ -155,7 +149,6 @@ def simulate_batch():
             output_path = str(current_app.instance_path).replace('\\', '/')
             simflags = f'-outputPath {output_path}{ov}'
             print(f"Simflags: {simflags}") 
-            path_to_mo = Path(current_app.instance_path) / f"{model_name}.mo"
             
             try:
                 # Load the model (use forward slashes for cross-platform compatibility)
@@ -179,7 +172,7 @@ def simulate_batch():
                 # Check for simulation errors (only print actual errors)
                 sim_errors = omc.request('getErrorString()')
                 if sim_errors and "Error" in sim_errors:
-                    print(f"⚠ Simulation errors: {sim_errors}")
+                    print(f" Simulation errors: {sim_errors}")
                 
                 # Check if CSV was created
                 csv_path = Path(current_app.instance_path) / f"{model_name}_res.csv"
@@ -209,7 +202,7 @@ def simulate_batch():
                 slot2_engine_cost = (config.get("slot 2") or {}).get("engine_cost", "None")
                 slot3_engine_cost = (config.get("slot 3") or {}).get("engine_cost", "None")
                 battery_cost = (config.get("battery") or {}).get("battery_cost", "None")
-                battery_cycle_limit = (config.get("battery") or {}).get("battery_cycke_limit", "None")
+                battery_cycle_limit = (config.get("battery") or {}).get("battery_cycle_limit", "None")
                 battery_volume =(config.get("battery") or {}).get("battery_volume", "None")
                 battery_mass=(config.get("battery") or {}).get("battery_mass", "None")
                 battery_name = (config.get("battery") or {}).get("battery_name", "None")
@@ -220,10 +213,8 @@ def simulate_batch():
                 cur_optZonePairs= [config.get("slot 1_lower") or 0, config.get("slot 1_upper") or 0, config.get("slot 2_lower") or 0, config.get("slot 2_upper") or 0, config.get("slot 3_lower") or 0, config.get("slot 3_upper") or 0]
                 # Create descriptive simulation name
                 # Make the abberivation for generators 1, 2 ,3 
-                #gen1_type_abb = "D" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 1") or {}).get("engine_fuel_type", "None")=="FC" else "None"
-                #gen2_type_abb = "D" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 2") or {}).get("engine_fuel_type", "None")=="FC" else "None"
-                #gen3_type_abb = "D" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Diesel" else "M" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") == "Methanol" else "F" if (config.get("slot 3") or {}).get("engine_fuel_type", "None")=="FC" else "None"
-                battery_power =  f"{"{:.2f}".format((config.get("battery") or {}).get("battery_max_charge_power", 0) * battery_count * (1/1000))}" if config.get("battery_count", 0) >= 1 else 0
+                
+                battery_power =  f"{round((config.get("battery") or {}).get("battery_max_charge_power", 0) * battery_count * (1/1000))}" if config.get("battery_count", 0) >= 1 else 0
                 gen1_power_abb = f"{(config.get("slot 1") or {}).get("engine_p_max", 0)}" if (config.get("slot 1") or {}).get("engine_fuel_type", "None") != "None" else 0
                 gen2_power_abb = f"{(config.get("slot 2") or {}).get("engine_p_max", 0)}" if (config.get("slot 2") or {}).get("engine_fuel_type", "None") != "None" else 0   
                 gen3_power_abb = f"{(config.get("slot 3") or {}).get("engine_p_max", 0)}" if (config.get("slot 3") or {}).get("engine_fuel_type", "None") != "None" else 0
@@ -295,10 +286,95 @@ def simulate_batch():
             "avalible_batches" : avalible_batches
         })
 
+@bp.route("/upload_dutyCycle", methods=["POST"])
+def handle_upload_dutycycle():
+    """
+    Receives a duty cycle .txt file, saves it to instance/,
+    parses it, and returns:
+      - absolute file path
+      - start time
+      - end time
+      - max power
+      - saving status
+    """
+
+    if "file" not in request.files:
+        return jsonify({
+            "status": False,
+            "reason": "No file part in request"
+        }), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({
+            "status": False,
+            "reason": "No file selected"
+        }), 400
+
+    # Accept only .txt
+    if not file.filename.lower().endswith(".txt"):
+        return jsonify({
+            "status": False,
+            "reason": "Only .txt files are allowed"
+        }), 400
+
+    # Prepare save path
+    filename = secure_filename(file.filename)
+    save_path = Path(current_app.instance_path) / filename
+
+    try:
+        # Save file
+        file.save(save_path)
+
+        # ---- Parse duty cycle file (JS logic translated to Python) ----
+        times = []
+        powers = []
+
+        with open(save_path, "r", encoding="utf-8") as f:
+            lines = f.read().strip().splitlines()
+
+        # Skip first 2 header lines
+        data_lines = lines[2:]
+
+        for line in data_lines:
+            parts = line.strip().split()
+            if len(parts) >= 2:
+                try:
+                    t = float(parts[0])
+                    p = float(parts[1])
+                    times.append(t)
+                    powers.append(p)
+                except ValueError:
+                    # Skip malformed lines
+                    continue
+
+        start_time = times[0] if times else None
+        end_time = times[-1] if times else None
+        max_power = max(powers) if powers else None
+
+        return jsonify({
+            "status": True,
+            "file_path": str(save_path.resolve()),
+            "startTime": start_time,
+            "endTime": end_time,
+            "maxPower": max_power,
+        }), 201
+
+    except Exception as e:
+        # Clean up partially saved file
+        if save_path.exists():
+            save_path.unlink()
+
+        return jsonify({
+            "status": False,
+            "reason": str(e)
+        }), 500
+
+
 def process_simmultion_result(index, simName, sequence_description, total_cost, 
                               max_powertrain_gen ,model_name, optZonePairs, batName, batCount,
                               engineMass, engineVolume, engineCost, batteryInfo):
-    
     processed_simulation_result = {}
     try:
         # Construct the path to the CSV result file
