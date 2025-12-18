@@ -40,7 +40,8 @@ export async function buildCombinations(dieList, methList, fcList, batList,  POS
     return allConfigs;
 
 }
-  
+
+
 export async function parseDutyCycle() {
   const res = await fetch(PortSideDutyCycle);
   const text = await res.text();
@@ -133,7 +134,7 @@ export async function filterIncapbleSystem({combos, numslots, max_power_required
     return tempoCombos;
 }
 
-export async function modelicaParameterMapping(combos, numslots){
+export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
     /**
      * This function will map prepared configuration with real modelica variable 
      */
@@ -177,11 +178,17 @@ export async function modelicaParameterMapping(combos, numslots){
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
                 }
+                
                 // BSFC Upper and Lower Bound
                 temp_changed_parameter.modelica_parameters.push(
                     {param :`mCtrl_user_defined_BSFC_percentage_${i}`, value: config["config"][`slot ${i}_upper`].toString()})
                 temp_changed_parameter.modelica_parameters.push(
                     {param :`mCtrl_user_defined_BSFC_percentage_${i}_lower`, value: config["config"][`slot ${i}_lower`].toString()})
+                
+                // Duty Cycle Path
+                temp_changed_parameter.modelica_parameters.push(
+                    {param :"combiTable1Ds.fileName", value: dutyCyclePath.replace(/\\/g, "/")})
+                
             }else{
                 // if there is no engine at that position,
                 // then make sure this engine is turned off 

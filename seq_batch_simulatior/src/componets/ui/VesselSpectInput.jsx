@@ -14,13 +14,19 @@ const VesselSpectIput =()=>{
     const taskNameRef = useRef(null);
     const weightLimitRef = useRef(null);
     const volumeLimitRef = useRef(null); 
+    const dieTankVolRef  = useRef(null); 
+    const methTankVol= useRef(null); 
+    const hydroTankVolRef = useRef(null);
+    const dieTankVolLimRef = useRef(null); 
+    const methTankVolLimRef= useRef(null);
+    const hydroTankVolLimRef = useRef(null);
 
     function handleConfirmInput() {
       const vesselName = vesselNameRef.current?.value.trim();
       const taskName = taskNameRef.current?.value.trim();
       const weightLimit = weightLimitRef.current?.value;
       const volumeLimit = volumeLimitRef.current?.value;
-
+      
       // Basic validation
       if (!vesselName || !taskName || !weightLimit || !volumeLimit) {
         alert("Please fill in all fields before confirming.")
@@ -59,18 +65,18 @@ const VesselSpectIput =()=>{
           <>
             <p>Confirm Diesel Fuel Mass </p>
             <div>
-               <input type="number" name="diesel_mass" placeholder="Diesel Mass (Ton)"/>
-               <input type="number" name="avalible_tank_percetage" placeholder="Diesel Tank Avalible %"/>
+               <input type="number" name="diesel_mass" ref={dieTankVolRef}  placeholder="Diesel Mass (Ton)"/>
+               <input type="number" name="avalible_tank_percetage" ref={dieTankVolLimRef} placeholder="Diesel Tank Avalible %"/>
             </div>
             <p>Confirm Alterntive Fuel Mass</p>
             <div>
-                <input type="number" name="alt_fuel_mass" placeholder="AltFuel Mass"/>
-                <input type="number" name="avalible_tank_percetage" placeholder="Altfuel Tank Avalible %"/>
+                <input type="number" name="alt_fuel_mass" ref={methTankVol} placeholder="AltFuel Mass"/>
+                <input type="number" name="avalible_tank_percetage" ref={methTankVolLimRef} placeholder="Altfuel Tank Avalible %"/>
             </div>
-            <p>Confirm </p>
+            <p>Confirm Hydrogen Fuel Tank Mass</p>
               <div>
-                <input type="number" name="hydro_fuel_mass" placeholder="Hydrogen Mass"/>
-                <input type="number" name="hydro_tank_percetage" placeholder="Hydrogen Tank Avalible %"/>
+                <input type="number" name="hydro_fuel_mass" ref={hydroTankVolRef} placeholder="Hydrogen Mass"/>
+                <input type="number" name="hydro_tank_percetage" ref = {hydroTankVolLimRef} placeholder="Hydrogen Tank Avalible %"/>
               </div>
 
             <p>Confirm the Weight Limit on the vessel</p>

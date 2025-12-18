@@ -5646,7 +5646,7 @@ if isLast then
   Modelica.Blocks.Math.Gain gain1(k = 1000) annotation(
     Placement(transformation(origin = {160, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   // Part Controller
-  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "C:/Users/NMS08/Desktop/ReCreatedModel/2024-04_FC_Cardinal_buoy_maintenance Portside.txt", verboseRead = true, columns = 2:2) annotation(
+  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "C:\Users\NMS08\Desktop\ReCreatedModel\SeqBatchSimulator\omserver\omserver\src\instance\2024-04_FC_Cardinal_buoy_maintenance_Portside.txt", verboseRead = true, columns = 2:2) annotation(
     Placement(transformation(origin = {232, -274}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Sources.RealExpression time_expre2(y = time) annotation(
     Placement(transformation(origin = {306, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
@@ -6537,7 +6537,7 @@ equation
   connect(altFuelUsageIntegrator.y, individualEngineController.altFuelUsageController) annotation(
     Line(points = {{-99, -420}, {-94, -420}, {-94, 47}, {-130, 47}}, color = {0, 0, 127}));
   connect(individualEngineController.hydrolUsageController, hydroUsgaeIntegrator.y) annotation(
-    Line(points = {{-130, 43}, {-102, 43}, {-102, -282}, {-70, -282}, {-70, -370}, {-98, -370}}, color = {0, 0, 127}));
+    Line(points = {{-130, 43}, {-102, 43}, {-102, -282}, {-66, -282}, {-66, -374}, {-84, -374}, {-84, -370}, {-98, -370}}, color = {0, 0, 127}));
   connect(gen_energy1.y, integrator_gen_energy1.u) annotation(
     Line(points = {{2, -310}, {18, -310}}, color = {0, 0, 127}));
   connect(gen_energy2.y, integrator_gen_energy2.u) annotation(

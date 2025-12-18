@@ -37,7 +37,7 @@ const DutyCycleLoader = () => {
       setStatus("Upload successful");
       const dutycycleInfo ={
         "startTime" : data.startTime,
-        "enbTime" : data.endTime,
+        "endTime" : data.endTime,
         "maxPower" : data.maxPower,
         "dutyCyclePath":data.file_path
       }

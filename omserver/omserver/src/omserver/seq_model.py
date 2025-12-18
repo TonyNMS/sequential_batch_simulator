@@ -54,11 +54,15 @@ def upload():
 def simulate_batch():
     # Retrive Request
     data = request.get_json(force=True)
+
     model_name  = data["model_name"]
     start_time  = data["start_time"]
     stop_time   = data["stop_time"]
     combos      = data["list_of_config_combinations"]
     number_of_slots =data["number_of_slots"]
+    vessel_name = data["vesselName"]
+    task_name =  data["taskName"]
+
     # Log General Batch Simulation Info
     print(f"[simulate_batch] model={model_name}, combos={len(combos)}, "
           f"start={start_time}, stop={stop_time}")
@@ -77,7 +81,7 @@ def simulate_batch():
     
     # Form the current bastch simulation object
     temp_result_collection = {
-        "batch_sim_title" :  f"{current_time}_{model_name}_vessel_name_place_holder",
+        "batch_sim_title" :  f"{current_time}_{model_name}_{vessel_name}_{task_name}",
         "batch_sim_time_stamp" : f"{current_time}",
         "vessel_name" : "fortuna_crane",
         "batch_size" : int(len(combos)),
