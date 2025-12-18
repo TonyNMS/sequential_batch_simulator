@@ -298,7 +298,7 @@ function generateAllPowerTrains({engineOptions, numSlots, batteries,batteryCount
 }
 
 
-export const commitBatchSimulation = async ({moParams, startTime,endTime,modelName,numSlot})=>{
+export const commitBatchSimulation = async ({moParams, startTime,endTime,modelName,numSlot, vesselName, taskName})=>{
     /**
      * Inform Backed to start simulation
      * Need Model Name
@@ -316,7 +316,9 @@ export const commitBatchSimulation = async ({moParams, startTime,endTime,modelNa
                 start_time: startTime,
                 stop_time: endTime,
                 list_of_config_combinations:moParams,
-                number_of_slots : numSlot
+                number_of_slots : numSlot,
+                vesselName : vesselName,
+                taskName : taskName
             }),
 
         }
