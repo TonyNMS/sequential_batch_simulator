@@ -150,6 +150,7 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
             //if there is a generator, in the slot
             
             if(config["config"][`slot ${i}`] != null){
+                temp_changed_parameter.modelica_parameters.push({param : "tolerance", value:"1.6e-6"})
                 // Engine On
                 temp_changed_parameter.modelica_parameters.push({param:`gen${i}_is_on`, value:"true"})
                 // Engine Power
@@ -213,6 +214,8 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
             // if there is not a battery, the battery does not output power
             temp_changed_parameter.modelica_parameters.push({param:"battery_P_max", value:"0.1"})
         }
+
+
         changed_parameters.push(temp_changed_parameter);
     }
 
