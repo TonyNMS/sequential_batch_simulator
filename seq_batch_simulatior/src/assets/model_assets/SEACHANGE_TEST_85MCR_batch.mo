@@ -5320,7 +5320,7 @@ if isLast then
   parameter Modelica.Units.SI.Volume hydrogenTank_Volume = H2Tankstorage;
   //parameter Real hydrogenTank_Tempurature;
   parameter Boolean hydrogenTank_use_pressure_constraint = true;
-  parameter Real fuelCell_Tempurature;
+  //parameter Real fuelCell_Tempurature;
   //parameter Fuel fuelCell_Medium
   //parameter Real fuelCell_P_H2;
   //parameter Real fuelCell_P_Q2;
@@ -5646,7 +5646,7 @@ if isLast then
   Modelica.Blocks.Math.Gain gain1(k = 1000) annotation(
     Placement(transformation(origin = {160, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   // Part Controller
-  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "C:/Users/NMS08/Desktop/ReCreatedModel/SeqBatchSimulator/omserver/omserver/src/instance/2023-15_Multibeam_sidescan_Trimmed_Adjusted.txt", verboseRead = true, columns = 2:2) annotation(
+  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "/home/ros1/Documents/sequential_batch_simulator/seq_batch_simulatior/src/assets/duty_cycle/2023-15 Multibeam sidescan Trimmed_Adjusted.txt", verboseRead = true, columns = 2:2) annotation(
     Placement(transformation(origin = {232, -274}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Sources.RealExpression time_expre2(y = time) annotation(
     Placement(transformation(origin = {306, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));

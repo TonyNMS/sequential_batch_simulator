@@ -9,7 +9,7 @@ import zmq
 
 class OMCConnection:
     
-    def __init__(self, random_socket_name=False, port=10000, start_timeout_s=10):
+    def __init__(self, random_socket_name=False, port=10000, start_timeout_s=20):
         self._port = int(port)
         self._omc_process = self._start_omc_process(random_socket_name)
         self._context = zmq.Context()
@@ -24,7 +24,7 @@ class OMCConnection:
         except Exception:
             pass
 
-    # ---- helpers, determines OMC path in ether windoes or linux ----
+    # ---- helpers, determines OMC path (windows or linux) ----
     def _find_omc(self):
         # 0) static override
         STATIC_OMC_EXE = r"C:\Program Files\OpenModelica1.22.1-64bit\bin\omc.exe"
@@ -69,7 +69,7 @@ class OMCConnection:
         sock.connect(f"tcp://127.0.0.1:{self._port}")
         return sock
 
-    def _wait_until_ready(self, timeout_s=10):
+    def _wait_until_ready(self, timeout_s=20):
         deadline = time.time() + timeout_s
         while time.time() < deadline:
             try:
@@ -82,7 +82,7 @@ class OMCConnection:
             time.sleep(0.1)
         raise TimeoutError("OMC did not become ready in time.")
 
-    def request(self, expression, timeout=30000):
+    def request(self, expression, timeout=300000):
         self._omc_socket.send_string(expression)
         if self._omc_socket.poll(timeout) & zmq.POLLIN:
             return self._omc_socket.recv_string()
