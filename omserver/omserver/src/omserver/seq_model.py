@@ -168,7 +168,7 @@ def simulate_batch():
                     f'startTime={start_time}, '
                     f'stopTime={stop_time}, '
                     f'numberOfIntervals=32643, '
-                    f'tolerance=1e-6, '
+                    f'tolerance=2.6e-6, '
                     f'simflags="{simflags}")'  
                 )
                 # print(f"Simulation result: {sim_result}")  # Disabled verbose output

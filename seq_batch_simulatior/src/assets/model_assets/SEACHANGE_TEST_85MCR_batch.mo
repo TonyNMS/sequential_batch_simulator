@@ -5604,7 +5604,7 @@ if isLast then
   parameter Modelica.Units.SI.Mass idealTank_TankcontentAltFuel = 2e14;
   parameter Modelica.Units.SI.Mass idealTank_TankcontentAltFuelStart = 2e14;
   /**GENERATOR FUEL CURVES **/
-  parameter Real BSFC_Curve_1[:, 2] = [80, 197.91; 160, 189.97; 240, 183.23; 320, 177.71; 400, 173.40; 480, 170.30; 560, 168.42; 640, 167.74; 720, 168.28; 800, 170.03];
+  parameter Real BSFC_Curve_1[:, 2] = [108, 244.31; 216, 234.06; 324, 225.34; 432, 218.14; 540, 212.47; 810, 204.97; 918, 204.64; 1080, 207.00];
   parameter Real BSFC_Curve_2[:, 2] = [80, 422.68; 160, 405.71; 240, 391.32; 320, 379.53; 400, 370.33; 480, 363.71; 560, 359.69; 640, 358.25; 720, 359.40;800,363.14];
   parameter Real BSFC_Curve_3[:, 2] = [33, 727.27; 83, 521.21; 165, 484.85; 248, 456.57; 330, 439.39];
   parameter Real BSFC_Curve_4[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
@@ -5614,7 +5614,7 @@ if isLast then
   parameter Real BSFC_Curve_8[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_9[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_10[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
-  parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_1[:, 2] =[0, 0.00; 10, 18.72; 20, 35.93; 30, 51.98; 40, 67.22; 50, 81.99; 60, 96.63; 70, 111.48; 80, 126.90; 90, 143.22; 100, 160.79];
+  parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_1[:, 2] =[0, 0.00; 10, 31.19; 20, 59.76; 30, 86.30; 40, 111.39; 50, 135.62; 75, 196.25; 85, 222.05; 100, 264.26];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_2[:, 2] =[0, 0.00; 10, 42.69; 20, 81.96; 30, 118.58; 40, 153.35; 50, 187.03; 60, 220.43; 70, 254.32; 80, 289.49; 90, 326.73; 100,366.80];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_3[:, 2] = [0, 0.00; 25, 107.10; 50, 213.50; 75, 323.03; 100, 438.38];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_4[:, 2] = [0, 0.00; 10, 16.74; 20, 31.87; 30, 46.45; 40, 60.68; 50, 74.66; 60, 88.44; 70, 102.06; 80, 115.54; 90, 128.90; 100, 142.16];
@@ -5647,7 +5647,7 @@ if isLast then
     Placement(transformation(origin = {160, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   // Part Controller
   Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "/home/ros1/Documents/sequential_batch_simulator/seq_batch_simulatior/src/assets/duty_cycle/2023-15 Multibeam sidescan Trimmed_Adjusted.txt", verboseRead = true, columns = 2:2) annotation(
-    Placement(transformation(origin = {232, -274}, extent = {{10, -10}, {-10, 10}})));
+    Placement(transformation(origin = {230, -276}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Sources.RealExpression time_expre2(y = time) annotation(
     Placement(transformation(origin = {306, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   SEACHANGE_TEST_85MCR_batch.IndividualEngineController individualEngineController(
@@ -6195,9 +6195,9 @@ equation
   connect(gain1.y, electricLoad.P) annotation(
     Line(points = {{149, -276}, {7.5, -276}, {7.5, -201}, {178, -201}}, color = {0, 0, 127}));
   connect(time_expre2.y, combiTable1Ds.u) annotation(
-    Line(points = {{295, -276}, {267, -276}, {267, -274}, {244, -274}}, color = {0, 0, 127}));
+    Line(points = {{295, -276}, {242, -276}}, color = {0, 0, 127}));
   connect(combiTable1Ds.y[1], gain1.u) annotation(
-    Line(points = {{221, -274}, {173, -274}, {173, -276}, {171, -276}}, color = {0, 0, 127}));
+    Line(points = {{219, -276}, {171, -276}}, color = {0, 0, 127}));
   connect(bsfc_table_gen1.pwr_higher_band, gainDieselUpperBound1.u) annotation(
     Line(points = {{-503, 270}, {-490, 270}, {-490, 290}, {-473, 290}}, color = {0, 0, 127}));
   connect(bsfc_table_gen2.pwr_higher_band, gainDieselUpperBound2.u) annotation(
