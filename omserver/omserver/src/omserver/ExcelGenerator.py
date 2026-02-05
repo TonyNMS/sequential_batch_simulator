@@ -117,7 +117,8 @@ class ExcelGenerator:
             "Gen3 Volume (m^3)",
             "Gen1 Mass (KG)",
             "Gen2 Mass (KG)",
-            "Gen3 Mass (KG)"
+            "Gen3 Mass (KG)",
+            "Battery Capacity (kWh)"
         ]
         ws.append(headers)
         
@@ -175,7 +176,8 @@ class ExcelGenerator:
                 gen_volume[2],
                 gen_mass[0],
                 gen_mass[1],
-                gen_mass[2]
+                gen_mass[2],
+                battery_spec[5]
             ]
             ws.append(row)
         

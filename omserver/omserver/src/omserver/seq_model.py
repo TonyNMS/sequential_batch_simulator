@@ -213,6 +213,7 @@ def simulate_batch():
                 battery_count = config.get("battery_count", 0)
                 battery_db_idx = (config.get("battery") or {}).get("battery_db_index", "None")
                 battery_abb = (config.get("battery") or {}).get("battery_abbreviation", "None")
+                battery_capacity=(config.get("battery") or {}).get("battery_capcity", "None")
                 #store all the current opt zone pairs (for  max three gens)
                 cur_optZonePairs= [config.get("slot 1_lower") or 0, config.get("slot 1_upper") or 0, config.get("slot 2_lower") or 0, config.get("slot 2_upper") or 0, config.get("slot 3_lower") or 0, config.get("slot 3_upper") or 0]
                 # Create descriptive simulation name
@@ -235,7 +236,11 @@ def simulate_batch():
                 engine_mass = [slot1_engine_mass, slot2_engine_mass, slot3_engine_mass]
                 engine_volume =[slot1_engine_volume, slot2_engine_volume, slot3_engine_volume]
                 engine_cost =[slot1_engine_cost, slot2_engine_cost, slot3_engine_cost]
-                battery_specs = [battery_power, battery_cost, battery_cycle_limit,  battery_volume, battery_mass]
+                battery_specs =[battery_power, battery_cost, 
+                                battery_cycle_limit, battery_volume, 
+                                battery_mass, battery_capacity]
+                
+                # Processing  Simulation record
                 simResult = process_simmultion_result(
                     int(idx), 
                     simName,
