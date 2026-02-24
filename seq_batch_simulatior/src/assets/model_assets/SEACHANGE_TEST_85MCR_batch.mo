@@ -40,1150 +40,614 @@ model SEACHANGE_TEST_85MCR_batch
   end FuelUsageTrapezoidSampled;
 
   model IndividualEngineController
-    model IndividualControllerCore12_85MCR
-    /*Controller core that allows the battery charging in effcient zone
-          Generator 1 will always run @ P_max as soon as it detects battery is in charging mode and power demand is above pMax, makes sure generator does not  */
-    /*Generator also control their power output when the excess power is greater than */
-    /*Inherint from the controller version 6, and further reduce the fuel useage at node 1.6, if the battery can not cover the demand  (where demand is in between pIdle and pLo), then battery do not run generator duns at Idle (change to genertor runs at demand)*/
-    /*Adding feature of fuel level tracking, and fuel tank limit: now if the fuel tank for a specific engine is deplited, then engine output 0;*/
-    
-    function determineIfEngineHasFuel
-      input Integer currentGenIdx;
-      input Real dieselLimit;
-      input Real altFuelLimit; 
-      input Real hydroLimit;
-      input Real generatorsFuelType[:];
-      input Real fuelUsageByType[:];
-      output Boolean has_fuel;
-    algorithm 
-      if generatorsFuelType[currentGenIdx] == 846 then  // if the generator is a diesel generator
-         has_fuel := if noEvent(dieselLimit >= fuelUsageByType[1] ) then true else false;
-      elseif generatorsFuelType[currentGenIdx] == 791 then // if the generator is a methanol generation
-          has_fuel := if noEvent(altFuelLimit>= fuelUsageByType[2] ) then true else false;
-      else // if the  generator act as fuel cell
-          has_fuel := if noEvent(hydroLimit>= fuelUsageByType[3] ) then true else false;
-      end if;  
-    end determineIfEngineHasFuel;
-    function calculateRemaingingAvalibleGeneratorPower
-      input Integer currentGenIndex;
-      input Integer  totalGenCount; // it is 10
-      input Real engineRatedPower[:]; // an one dementinal array of size 10, contains real on the rated power of the engine
-      input Boolean  engineExist[:];        // an one dementional array of size 10, contains boolean on whether an engine exist
-      input Boolean engineHasFuel[:];         // one dementional array size of 10, every element contains the status of the fuel tank
-      output Real remainingAvalibleGeneratorPower;
-     
-     algorithm 
-      remainingAvalibleGeneratorPower := 0;
+model IndividualControllerCore12_85MCR
+/*Controller core that allows the battery charging in effcient zone
+      Generator 1 will always run @ P_max as soon as it detects battery is in charging mode and power demand is above pMax, makes sure generator does not  */
+/*Generator also control their power output when the excess power is greater than */
+/*Inherint from the controller version 6, and further reduce the fuel useage at node 1.6, if the battery can not cover the demand  (where demand is in between pIdle and pLo), then battery do not run generator duns at Idle (change to genertor runs at demand)*/
+/*Adding feature of fuel level tracking, and fuel tank limit: now if the fuel tank for a specific engine is deplited, then engine output 0;*/
+
+function determineIfEngineHasFuel
+  input Integer currentGenIdx;
+  input Real dieselLimit;
+  input Real altFuelLimit; 
+  input Real hydroLimit;
+  input Real generatorsFuelType[:];
+  input Real fuelUsageByType[:];
+  output Boolean has_fuel;
+algorithm 
+  if generatorsFuelType[currentGenIdx] == 846 then  // if the generator is a diesel generator
+     has_fuel := if noEvent(dieselLimit >= fuelUsageByType[1] ) then true else false;
+  elseif generatorsFuelType[currentGenIdx] == 791 then // if the generator is a methanol generation
+      has_fuel := if noEvent(altFuelLimit>= fuelUsageByType[2] ) then true else false;
+  else // if the  generator act as fuel cell
+      has_fuel := if noEvent(hydroLimit>= fuelUsageByType[3] ) then true else false;
+  end if;  
+end determineIfEngineHasFuel;
+function calculateRemaingingAvalibleGeneratorPower
+  input Integer currentGenIndex;
+  input Integer  totalGenCount; // it is 10
+  input Real engineRatedPower[:]; // an one dementinal array of size 10, contains real on the rated power of the engine
+  input Boolean  engineExist[:];        // an one dementional array of size 10, contains boolean on whether an engine exist
+  input Boolean engineHasFuel[:];         // one dementional array size of 10, every element contains the status of the fuel tank
+  output Real remainingAvalibleGeneratorPower;
+ 
+ algorithm 
+  remainingAvalibleGeneratorPower := 0;
 // loop every engine after the current engine ,  if the engine exist and the engine has fuel then add the power Reamaining Ava power
-      for i in currentGenIndex +1 : totalGenCount loop
-        if engineExist[i] and engineHasFuel[i] then
-          remainingAvalibleGeneratorPower :=  remainingAvalibleGeneratorPower +engineRatedPower[i];
-        end if ;
-      end for; 
-    end calculateRemaingingAvalibleGeneratorPower;
-    
-    
-    function calculateGeneratorPower "Per-gen allocator with efficient target pEff and richer battery participation"
-      input Integer current_engine_indx;
-      input Integer last_active_engine_indx;
-      input Real demand "Remaining demand (W, >=0)";
-      input Real P_idle "Idle (W)";
-      input Real P_lo "Optimal lower bound (W)";
-      input Real P_eff "Most efficient point (W)";
-      input Real P_hi "Optimal upper bound (W)";
-      input Real P_max "Rated max (W)";
-      input Boolean useBattery;
-      input Real Battery_Capability "Max discharge available now (W, >=0)";
-      input Real remainingGeneratorPower;
-      // input Boolean batteryNeedsCharging;
-      input Real chargeIntent "0..1";
-      input Real abs_battery_charging_limit "The absolute power can be delievered to battery for charging";
-      input Boolean generatorHasFuel "A boolean variable that records the tank status of th current generator" ;
-      input Real current_SOC "The current SOC level in the battery, used  as secondary check";
-      output Real y "Generator setpoint (W)";
-      output Real battery_gen "Battery DIScharge to bus (W, >=0)";
-      output Real unmet "Remainder to next gen (W, >=0)";
-      output Real charging_gen "Charge power absorbed (W, >=0)";
-      output Real nodeTracker "Track the fucking node";
-    protected
-      Real pIdle, pLo, pEff, pHi, pMax, yCand, shortfall, surplus, cap;
-      Real tempNode;
-      Boolean isLast;
-      Boolean needsCharge = chargeIntent > 0.5;
-    algorithm
+  for i in currentGenIndex +1 : totalGenCount loop
+    if engineExist[i] and engineHasFuel[i] then
+      remainingAvalibleGeneratorPower :=  remainingAvalibleGeneratorPower +engineRatedPower[i];
+    end if ;
+  end for; 
+end calculateRemaingingAvalibleGeneratorPower;
+
+
+function calculateGeneratorPower "Per-gen allocator with efficient target pEff and richer battery participation"
+  input Integer current_engine_indx;
+  input Integer last_active_engine_indx;
+  input Real demand "Remaining demand (W, >=0)";
+  input Real P_idle "Idle (W)";
+  input Real P_lo "Optimal lower bound (W)";
+  input Real P_eff "Most efficient point (W)";
+  input Real P_hi "Optimal upper bound (W)";
+  input Real P_max "Rated max (W)";
+  input Boolean useBattery;
+  input Real Battery_Capability "Max discharge available now (W, >=0)";
+  input Real remainingGeneratorPower;
+  // input Boolean batteryNeedsCharging;
+  input Real chargeIntent "0..1";
+  input Real abs_battery_charging_limit "The absolute power can be delievered to battery for charging";
+  input Boolean generatorHasFuel "A boolean variable that records the tank status of th current generator" ;
+  input Real current_SOC "The current SOC level in the battery, used  as secondary check";
+  output Real y "Generator setpoint (W)";
+  output Real battery_gen "Battery DIScharge to bus (W, >=0)";
+  output Real unmet "Remainder to next gen (W, >=0)";
+  output Real charging_gen "Charge power absorbed (W, >=0)";
+  output Real nodeTracker "Track the  node";
+protected
+  Real pIdle, pLo, pEff, pHi, pMax, yCand, shortfall, surplus, cap;
+  Real tempNode;
+  Boolean isLast;
+  Boolean needsCharge = chargeIntent > 0.5;
+algorithm
 // --- 0) sanitize bounds: pIdle <= pLo <= pEff <= pHi <= pMax
-      pIdle := max(0, P_idle);
-      pMax := max(pIdle, P_max);
-      pLo := min(max(pIdle, P_lo), pMax);
-      pEff := min(max(pLo, P_eff), pMax);
-      pHi := min(max(pEff, P_hi), pMax);
-      isLast := (current_engine_indx == last_active_engine_indx);
-      cap := max(0, Battery_Capability);
-    // --- 0) before selecting a generator output canidateyCand, check if there is fuel for this generator.
+  pIdle := max(0, P_idle);
+  pMax := max(pIdle, P_max);
+  pLo := min(max(pIdle, P_lo), pMax);
+  pEff := min(max(pLo, P_eff), pMax);
+  pHi := min(max(pEff, P_hi), pMax);
+  isLast := (current_engine_indx == last_active_engine_indx);
+  cap := max(0, Battery_Capability);
+// --- 0) before selecting a generator output canidateyCand, check if there is fuel for this generator.
 if generatorHasFuel then
-            // --- 1) choose generator a policy target yCand (no battery applied yet) ---
+        // --- 1) choose generator a policy target yCand (no battery applied yet) ---
 if noEvent(demand <= 0) then
-// No demand
-            yCand := 0;
-            tempNode := 1.1;
-      /*
-          if useBattery then 
+    // No demand
+        
+        yCand := 0;
+        tempNode := 1.13;
+        /*
+        if useBattery then 
+          if noEvent(current_SOC<0.7) then 
+              yCand := P_hi;
+              tempNode := 1.11;
+          else
               yCand := 0;
-          else 
-              yCand  := 0; 
-           end if;*/
-     elseif noEvent(demand <= pIdle) then
+              tempNode := 1.12;
+          end if;
+        else 
+          yCand := 0;
+          tempNode := 1.13;
+        end if ;*/
+                
+  /*
+      if useBattery then 
+          yCand := 0;
+      else 
+          yCand  := 0; 
+       end if;*/
+ elseif noEvent(demand <= pIdle) then
 // Below idle:
 // if using battery:
 //   - if batteryNeedsCharging: push gen to pIdle and charge with surplus
 //   - else: if battery can cover, keep gen at 0; else gen at pIdle
 // else (no battery): run at idle
-            if useBattery then
-              if needsCharge then
-                yCand := min((demand + abs_battery_charging_limit), pEff);
-                tempNode := 1.2;
-              else
-                /*
-                yCand := if noEvent(cap >= demand) then 0 else pIdle;
-                tempNode := 1.3;*/
-                if noEvent(cap >=demand) then
-                    yCand := 0;
-                    tempNode := 1.3;
-                else
-                    if noEvent(current_SOC < 0.7) then
-                        yCand := min(demand + abs_battery_charging_limit, pEff);
-                        tempNode := 1.31;
-                    else
-                        yCand := pIdle;
-                        tempNode := 1.32;
-                    end if;
-                end if; 
-              end if;
+        if useBattery then
+          if needsCharge then
+            yCand := min((demand + abs_battery_charging_limit), pEff);
+            tempNode := 1.2;
+          else
+            /*
+            yCand := if noEvent(cap >= demand) then 0 else pIdle;
+            tempNode := 1.3;*/
+            if noEvent(cap >=demand) then
+                yCand := 0;
+                tempNode := 1.3;
             else
-              yCand := pIdle;
-              tempNode := 1.4;
-            end if;
-     elseif noEvent(demand <= pLo) then
+                if noEvent(current_SOC < 0.7) then
+                    yCand := min(demand + abs_battery_charging_limit, pEff);
+                    tempNode := 1.31;
+                else
+                    yCand := pIdle;
+                    tempNode := 1.32;
+                end if;
+            end if; 
+          end if;
+        else
+          yCand := pIdle;
+          tempNode := 1.4;
+        end if;
+ elseif noEvent(demand <= pLo) then
 // Between idle and lower bound:
-            if useBattery then
-              if needsCharge then
-                yCand := min((demand + abs_battery_charging_limit), pEff);
-                tempNode := 1.5;
-              else
-                if noEvent (cap >= demand) then 
-                    yCand := 0;
-                    tempNode := 1.6;
-                else
-                    if noEvent(current_SOC < 0.7) then
-                        yCand := min(demand + abs_battery_charging_limit, pEff);
-                        tempNode := 1.61;
-                    else
-                        yCand := demand;
-                        tempNode := 1.62;
-                    end if; 	
-                end if;
-              end if;
+        if useBattery then
+          if needsCharge then
+            yCand := min((demand + abs_battery_charging_limit), pEff);
+            tempNode := 1.5;
+          else
+            if noEvent (cap >= demand) then 
+                yCand := 0;
+                tempNode := 1.6;
             else
-              yCand := demand;
-              tempNode := 1.7;
-            end if;
-          elseif noEvent(demand <= pHi) then
-// Inside the optimal band:
-            if useBattery then
-              if needsCharge then
-               if noEvent(demand + abs_battery_charging_limit >= pHi) then // if the  demand + charging limit  is greater than pHi
-                   yCand := pHi; //charge with pHi
-                   tempNode := 2.0;
-               elseif noEvent(demand + abs_battery_charging_limit > pEff) then
-                  yCand := demand + abs_battery_charging_limit;
-                  tempNode := 2.01;
-               elseif noEvent(demand + abs_battery_charging_limit == pEff) then
-                  yCand := pEff;
-                  tempNode := 2.02; 
-               else
-                  yCand :=  demand + abs_battery_charging_limit;
-                  tempNode := 2.03;
-               end if;
-              else
-                if noEvent(cap >= demand) then
-                    yCand := 0;
-                    tempNode := 2.1;
-                else
-                    if noEvent(current_SOC <0.7) then
-                        if noEvent(demand + abs_battery_charging_limit > pHi) then
-                            yCand := pHi ;
-                            tempNode := 2.12;
-// Charing power should be at pHi - demand
-                        else
-                            yCand := demand + abs_battery_charging_limit;
-                            tempNode := 2.13;
-                        end if;			
-                    else
-                        yCand := demand;
-                        tempNode:= 2.14;
-                    end if ;
-                end if;
-              end if;
-            else
-              yCand := demand;
-              tempNode := 2.3;
-            end if;
-          elseif noEvent(demand <= pMax) then
-// Between pHi and rated:
-            if isLast then
-              if useBattery then
-                if noEvent(current_SOC > 0.25) then
-                    if noEvent(pHi + cap >= demand) then
-                        yCand := pHi;
-                        tempNode := 3.0;
-                    else
-                        yCand := demand- cap;
-                        tempNode := 3.1;
-                    end if;
+                if noEvent(current_SOC < 0.7) then
+                    yCand := min(demand + abs_battery_charging_limit, pEff);
+                    tempNode := 1.61;
                 else
                     yCand := demand;
-                    tempNode := 3.2;
-                end if;
-              else
-                yCand := demand;
-                tempNode := 3.4;
-              end if;
+                    tempNode := 1.62;
+                end if; 	
+            end if;
+          end if;
+        else
+          yCand := demand;
+          tempNode := 1.7;
+        end if;
+      elseif noEvent(demand <= pHi) then
+// Inside the optimal band:
+        if useBattery then
+          if needsCharge then
+           if noEvent(demand + abs_battery_charging_limit >= pHi) then // if the  demand + charging limit  is greater than pHi
+               yCand := pHi; //charge with pHi
+               tempNode := 2.0;
+           elseif noEvent(demand + abs_battery_charging_limit > pEff) then
+              yCand := demand + abs_battery_charging_limit;
+              tempNode := 2.01;
+           elseif noEvent(demand + abs_battery_charging_limit == pEff) then
+              yCand := pEff;
+              tempNode := 2.02; 
+           else
+              yCand :=  demand + abs_battery_charging_limit;
+              tempNode := 2.03;
+           end if;
+          else
+            if noEvent(cap >= demand) then
+                yCand := 0;
+                tempNode := 2.1;
             else
-              if noEvent(demand - pHi  <= remainingGeneratorPower) then
-                yCand := pHi;
-                tempNode := 3.51;
-              else
-                yCand := pMax ;
-                tempNode := 3.52;
-              end if ;
+                if noEvent(current_SOC <0.7) then
+                    if noEvent(demand + abs_battery_charging_limit > pHi) then
+                        yCand := pHi ;
+                        tempNode := 2.12;
+// Charing power should be at pHi - demand
+                    else
+                        yCand := demand + abs_battery_charging_limit;
+                        tempNode := 2.13;
+                    end if;			
+                else
+                    yCand := demand;
+                    tempNode:= 2.14;
+                end if ;
+            end if;
+          end if;
+        else
+          yCand := demand;
+          tempNode := 2.3;
+        end if;
+      elseif noEvent(demand <= pMax) then
+// Between pHi and rated:
+        if isLast then
+          if useBattery then
+            if noEvent(current_SOC > 0.25) then
+                if noEvent(pHi + cap >= demand) then
+                    yCand := pHi;
+                    tempNode := 3.0;
+                else
+                    yCand := demand- cap;
+                    tempNode := 3.1;
+                end if;
+            else
+                yCand := demand;
+                tempNode := 3.2;
             end if;
           else
-    // If last gen: power demand exceed the pmax
+            yCand := demand;
+            tempNode := 3.4;
+          end if;
+        else
+          if noEvent(demand - pHi  <= remainingGeneratorPower) then
+            yCand := pHi;
+            tempNode := 3.51;
+          else
+            yCand := pMax ;
+            tempNode := 3.52;
+          end if ;
+        end if;
+      else
+// If last gen: power demand exceed the pmax
 //   if battery:
 if isLast then
-                if useBattery then
-                  if (current_SOC > 0.25) then 
-                                if noEvent(demand <= pEff + cap) then
-                                  yCand := pEff;
-                                  tempNode := 3.6;
-                                elseif noEvent(demand <= pHi + cap) then
-                                  yCand := pHi;
-                                  tempNode := 3.7;
-                                elseif noEvent(demand <= pMax  + cap) then
-                                  yCand := pMax ;
-                                  tempNode := 3.8;
-                                else
-                                  yCand := demand - cap;
-                                  tempNode := 3.9;
+            if useBattery then
+              if (current_SOC > 0.25) then 
+                            if noEvent(demand <= pEff + cap) then
+                              yCand := pEff;
+                              tempNode := 3.6;
+                            elseif noEvent(demand <= pHi + cap) then
+                              yCand := pHi;
+                              tempNode := 3.7;
+                            elseif noEvent(demand <= pMax  + cap) then
+                              yCand := pMax ;
+                              tempNode := 3.8;
+                            else
+                              yCand := demand - cap;
+                              tempNode := 3.9;
                             end if; 
-                  else
-                      yCand := demand - cap;
-                          tempNode := 4.1;
-                  end if;
-                else
+              else
                   yCand := pMax;
-// this is the last generator and there is no battery , work as hard as possible
+                  //yCand := demand - cap;
                   tempNode := 4.1;
-                end if;
-              else
-                if useBattery then
-                  if noEvent(cap > 0) then
-                    yCand := pHi;
-// non-last keeps pHi and passes the res
-                    tempNode := 4.2;
-                  else
-                    if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
-                          yCand  := pHi;
-                          tempNode := 4.21;
-                    else
-                          yCand := pMax  ;
-                          tempNode  := 4.22;
-                    end if ;
-                  end if;
-                else // if this is not the last generator and there is no battery
-                  if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
-                         yCand  := pHi;
-                         tempNode := 4.31;
-                  else
-                         yCand := pMax ;
-                         tempNode := 4.32;
-                  end if;
-                end if;
               end if;
+            else
+              yCand := pMax;
+// this is the last generator and there is no battery , work as hard as possible
+              tempNode := 4.12;
             end if;
-      else
-// no power production if no fuel.
-          yCand := 0;
-          tempNode  :=1.1;
-      end if;
-// Final clamp for safety, making sure yCand is bigger than 0 and smaller than pMax
-      yCand := min(max(yCand, 0), pMax );
-// --- 2) settlement: compute surplus/shortfall and battery/pass-down ---
-      charging_gen := 0;
-      battery_gen := 0;
-      surplus := max(yCand - demand, 0);
-// if the generate is assigned with a number that can result in a surplus
-// new addition : checking if the surpulse is greater than battery max chargin rate
-      if noEvent(surplus > 0) then
-        if  useBattery then //  and needsCharge
-          if noEvent(surplus > abs_battery_charging_limit) then
-            charging_gen := abs_battery_charging_limit;
-            y := demand + abs_battery_charging_limit;
-            unmet := 0;
-            return;
           else
-            charging_gen := surplus;
-            y := yCand;
-            unmet := 0;
-            return;
-          end if;
-        end if;
-      end if;
-      nodeTracker := tempNode;
-      shortfall := max(demand - yCand, 0);
-      if isLast and useBattery  then //and not needsCharge
-        battery_gen := min(cap, shortfall);
-      else
-        battery_gen := 0;
-      end if;
-        unmet := max(shortfall - battery_gen, 0);
-      y := yCand;
-    end calculateGeneratorPower;
-    
-    parameter Integer N = 10 "Maximum generator slots";
-    // existence flags (set at init)
-    parameter Boolean gen_1_exist = true;
-    parameter Boolean gen_2_exist = true;
-    parameter Boolean gen_3_exist = false;
-    parameter Boolean gen_4_exist = false;
-    parameter Boolean gen_5_exist = false;
-    parameter Boolean gen_6_exist = false;
-    parameter Boolean gen_7_exist = false;
-    parameter Boolean gen_8_exist = false;
-    parameter Boolean gen_9_exist = false;
-    parameter Boolean gen_10_exist = false;
-    parameter Boolean gen_exist[N] = {gen_1_exist, gen_2_exist, gen_3_exist, gen_4_exist, gen_5_exist, gen_6_exist, gen_7_exist, gen_8_exist, gen_9_exist, gen_10_exist};
-    // idle / rated power (W)
-    parameter Real gen_1_idle_gen = 0;
-    parameter Real gen_2_idle_gen = 0;
-    parameter Real gen_3_idle_gen = 0;
-    parameter Real gen_4_idle_gen = 0;
-    parameter Real gen_5_idle_gen = 0;
-    parameter Real gen_6_idle_gen = 0;
-    parameter Real gen_7_idle_gen = 0;
-    parameter Real gen_8_idle_gen = 0;
-    parameter Real gen_9_idle_gen = 0;
-    parameter Real gen_10_idle_gen = 0;
-    parameter Real P_idle[N] = {gen_1_idle_gen, gen_2_idle_gen, gen_3_idle_gen, gen_4_idle_gen, gen_5_idle_gen, gen_6_idle_gen, gen_7_idle_gen, gen_8_idle_gen, gen_9_idle_gen, gen_10_idle_gen};
-    parameter Real gen_1_rated_gen = 0;
-    parameter Real gen_2_rated_gen = 0;
-    parameter Real gen_3_rated_gen = 0;
-    parameter Real gen_4_rated_gen = 0;
-    parameter Real gen_5_rated_gen = 0;
-    parameter Real gen_6_rated_gen = 0;
-    parameter Real gen_7_rated_gen = 0;
-    parameter Real gen_8_rated_gen = 0;
-    parameter Real gen_9_rated_gen = 0;
-    parameter Real gen_10_rated_gen = 0;
-    parameter Real P_rated[N] = {gen_1_rated_gen * 0.85 , gen_2_rated_gen* 0.85, gen_3_rated_gen* 0.85, gen_4_rated_gen* 0.85, gen_5_rated_gen* 0.85, gen_6_rated_gen* 0.85, gen_7_rated_gen* 0.85, gen_8_rated_gen* 0.85, gen_9_rated_gen* 0.85, gen_10_rated_gen* 0.85};
-    // Paraemter fuel type, send from main model
-    parameter Real generators_fuel_type[10] ={791, 846, 846, 846, 846, 846, 846, 846, 846, 846};
-    // Parameter Temp, local, diesel limit
-    parameter Real dieseLimitLocal = 230236;
-    parameter Real methanolLimitLocal = 230236;
-    parameter Real hydrogenLimitLocal = 0;
-    // battery capability (limits)
-    parameter Real P_rated_battery = 2e5 "Max discharge capability (W)";
-    parameter Real P_charging_max = P_rated_battery "Max charging power (W)";
-    parameter Real P_discharging_max = -P_rated_battery "Alias for readability";
-    // SoC thresholds for hysteresis and smooth caps
-    parameter Real SOC_min = 0.25 "Below this  prefer charging";
-    parameter Real SOC_max = 0.80 "Above this  disallow charging";
-    parameter Real smooth_charge_percentage = 0.10 "Width of smooth transition (fraction of full SoC)";
-    // Secondary SOC Threshold
-    parameter Real  SOC_sec_check = 0.7 "Seconday SOC check";
-    //---------------- Connectors ----------------
-      // demand & SoC
-    Modelica.Blocks.Interfaces.RealInput P_load_1 annotation(
-      Placement(transformation(origin = {-110, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-88, -110}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
-    //"Net power demand (+ = demand)"; // adjust if your sign convention is opposite
-    Modelica.Blocks.Interfaces.RealInput SOC_1 annotation(
-      Placement(transformation(origin = {-90, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-68, -110}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
-    // optimal bounds from BSFC blocks
-    Modelica.Blocks.Interfaces.RealInput P_gen_1_Optim_Upper annotation(
-      Placement(transformation(origin = {-110, 90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 90}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_1_Optim_Lower annotation(
-      Placement(transformation(origin = {-110, 70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 70}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_2_Optim_Upper annotation(
-      Placement(transformation(origin = {-110, 50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 50}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_2_Optim_Lower annotation(
-      Placement(transformation(origin = {-110, 30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 30}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_3_Optim_Upper annotation(
-      Placement(transformation(origin = {-110, 10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 10}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_3_Optim_Lower annotation(
-      Placement(transformation(origin = {-110, -10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, -10}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_4_Optim_Upper annotation(
-      Placement(transformation(origin = {-70, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -30}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_4_Optim_Lower annotation(
-      Placement(transformation(origin = {-50, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -50}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_5_Optim_Upper annotation(
-      Placement(transformation(origin = {-30, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -70}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_5_Optim_Lower annotation(
-      Placement(transformation(origin = {-10, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -90}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealInput P_gen_6_Optim_Upper annotation(
-      Placement(transformation(origin = {-110, -30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-90, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_6_Optim_Lower annotation(
-      Placement(transformation(origin = {-110, -48}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-70, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_7_Optim_Upper annotation(
-      Placement(transformation(origin = {-110, -70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-50, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_7_Optim_Lower annotation(
-      Placement(transformation(origin = {-110, -90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-30, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_8_Optim_Upper annotation(
-      Placement(transformation(origin = {-110, -110}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-10, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_8_Optim_Lower annotation(
-      Placement(transformation(origin = {-110, -130}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {10, 110}, extent = {{-10, 10}, {10, -10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_9_Optim_Upper annotation(
-      Placement(transformation(origin = {-14, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {30, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_9_Optim_Lower annotation(
-      Placement(transformation(origin = {18, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {50, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_10_Optim_Upper annotation(
-      Placement(transformation(origin = {-72, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {70, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput P_gen_10_Optim_Lower annotation(
-      Placement(transformation(origin = {-40, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {90, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    // input most effcient power
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr1 annotation(
-      Placement(transformation(origin = {64, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {6, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr2 annotation(
-      Placement(transformation(origin = {70, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {16, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr3 annotation(
-      Placement(transformation(origin = {76, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {26, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr4 annotation(
-      Placement(transformation(origin = {82, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {36, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr5 annotation(
-      Placement(transformation(origin = {88, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {46, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr6 annotation(
-      Placement(transformation(origin = {94, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {56, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr7 annotation(
-      Placement(transformation(origin = {100, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {66, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr8 annotation(
-      Placement(transformation(origin = {106, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {76, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr9 annotation(
-      Placement(transformation(origin = {112, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {86, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput genMostEffPwr10 annotation(
-      Placement(transformation(origin = {118, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {96, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-    // input for current
-    Modelica.Blocks.Interfaces.RealInput dieselUsageCore annotation(
-      Placement(transformation(origin = {6, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-48, -106}, extent = {{6, -6}, {-6, 6}}, rotation = -90)));
-    Modelica.Blocks.Interfaces.RealInput altFuellUsageCore annotation(
-      Placement(transformation(origin = {14, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-36, -106}, extent = {{-6, -6}, {6, 6}}, rotation = 90)));
-    Modelica.Blocks.Interfaces.RealInput hydroUsageCore annotation(
-      Placement(transformation(origin = {22, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-24, -106}, extent = {{-6, -6}, {6, 6}}, rotation = 90)));
-    // outputs per gen
-    Modelica.Blocks.Interfaces.RealOutput gen2_output annotation(
-      Placement(transformation(origin = {110, 70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 70}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen3_output annotation(
-      Placement(transformation(origin = {110, 50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 50}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen4_output annotation(
-      Placement(transformation(origin = {110, 30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 30}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen5_output annotation(
-      Placement(transformation(origin = {110, 10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 10}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen6_output annotation(
-      Placement(transformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen7_output annotation(
-      Placement(transformation(origin = {110, -32}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -30}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen8_output annotation(
-      Placement(transformation(origin = {110, -70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -50}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen9_output annotation(
-      Placement(transformation(origin = {110, -50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -70}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen10_output annotation(
-      Placement(transformation(origin = {110, -90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -90}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput gen1_output annotation(
-      Placement(transformation(origin = {110, 90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 90}, extent = {{-10, -10}, {10, 10}})));
-    // battery outputs
-    Modelica.Blocks.Interfaces.RealOutput P_battery_1 "Battery discharge to bus (+)" annotation(
-      Placement(transformation(origin = {110, -110}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -110}, extent = {{-10, -10}, {10, 10}})));
-    Modelica.Blocks.Interfaces.RealOutput P_batt_charge_request "Positive charge request (W) to be absorbed by charger/BMS";
-    //---------------- Internals ----------------
-      // optimal bound arrays
-    Real P_opt_lo[N], P_opt_hi[N], P_most_eff[N];
-    // allocator arrays
-    Real P_gen_cmd[N] "Generator setpoints (W)";
-    Real P_bat_each[N] "Battery discharge used at each stage (only last > 0)";
-    Real P_charge_each[N] "Charging power contributed by each stage";
-    Real P_unmet_each[N] "Unmet passed from each stage";
-    Real P_rem[N] "Remainder chain (demand -> unmet -> ...)";
-    Real P_node_collection[N];
-      
-    Boolean  Generator_has_fuel[N];
-    Real FuelUsageByType [3];
-    // SoC smoothed gates (0..1)
-    Real smooth_soc_min "fraction enabling discharge";
-    Real smooth_soc_max "fraction enabling charge";
-    // battery state flag
-    Real batNeedsChargingR(start = 0, fixed = true) "0=not charging, 1=needs charging";
-    Boolean batNeedsCharging = batNeedsChargingR > 0.5;
-    // convenience params
-    parameter Boolean batteryInstalled = (P_rated_battery > 100);
-    // indices/count
-    parameter Integer lastActive = max({if gen_exist[i] then i else 0 for i in 1:N}) "Physical index of last existing generator (0 if none)";
-    parameter Integer nActive = sum({if gen_exist[i] then 1 else 0 for i in 1:N});
-    // instantaneous battery caps (W)
-    Real P_cap_now "available discharge cap now (W)";
-    Real P_charge_cap_now "available charge cap now (W)";
-    //---------------- Local smoothstep helper ----------------
-
-    function smoothStepCubic
-      input Real u "0..1-ish";
-      output Real y;
-    algorithm
-      if u <= 0 then
-        y := 0;
-      elseif u >= 1 then
-        y := 1;
-      else
-// classic cubic smoothstep: 3u^2 - 2u^3
-        y := 3*u*u - 2*u*u*u;
-      end if;
-    end smoothStepCubic;
-    
-    
-    
-    algorithm
-// SoC hysteresis for "needs charging"
-    when initial() or SOC_1 <= SOC_min or SOC_1 >= SOC_max then
-      batNeedsChargingR := if SOC_1 <= SOC_min then 1 elseif SOC_1 >= SOC_max then 0 else pre(batNeedsChargingR);
-    end when;
-    
-    equation
-//---------------- Map optimal bounds to arrays ----------------
-    P_opt_lo = {P_gen_1_Optim_Lower, P_gen_2_Optim_Lower, P_gen_3_Optim_Lower, P_gen_4_Optim_Lower, P_gen_5_Optim_Lower, P_gen_6_Optim_Lower, P_gen_7_Optim_Lower, P_gen_8_Optim_Lower, P_gen_9_Optim_Lower, P_gen_10_Optim_Lower};
-    P_opt_hi = {P_gen_1_Optim_Upper, P_gen_2_Optim_Upper, P_gen_3_Optim_Upper, P_gen_4_Optim_Upper, P_gen_5_Optim_Upper, P_gen_6_Optim_Upper, P_gen_7_Optim_Upper, P_gen_8_Optim_Upper, P_gen_9_Optim_Upper, P_gen_10_Optim_Upper};
-    P_most_eff = {genMostEffPwr1, genMostEffPwr2, genMostEffPwr3, genMostEffPwr4, genMostEffPwr5, genMostEffPwr6, genMostEffPwr7, genMostEffPwr8, genMostEffPwr9, genMostEffPwr10};
-    FuelUsageByType ={dieselUsageCore, altFuellUsageCore, hydroUsageCore};
-    Generator_has_fuel ={
-      determineIfEngineHasFuel(currentGenIdx = 1, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 2, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 3, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 4, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 5, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 6, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 7, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType=  FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 8, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 9, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-      determineIfEngineHasFuel(currentGenIdx = 10, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type,fuelUsageByType= FuelUsageByType)
-    };
-// Generator_has_fuel{};
-//P_node_collection ={gen1Node,gen2Node,gen3Node,gen4Node,gen5Node,gen6Node,gen7Node,gen8Node,gen9Node,gen10Node};
-//---------------- Smooth caps from SoC ----------------
-// discharge allowed ramps in above SOC_min
-    smooth_soc_min = smoothStepCubic((SOC_1 - SOC_min)/max(1e-6, smooth_charge_percentage));
-// charge allowed ramps out as we pass SOC_max
-    smooth_soc_max = 1 - smoothStepCubic((SOC_1 - SOC_max)/max(1e-6, smooth_charge_percentage));
-    P_cap_now = if batteryInstalled and not batNeedsCharging then min(P_discharging_max, min(0, smooth_soc_min*P_rated_battery)*(-1))*(-1) else 0;
-    P_charge_cap_now = if batteryInstalled then min(P_charging_max, max(0, smooth_soc_max*P_charging_max)) else 0;
-//---------------- Seed remainder with demand (>=0) ----------------
-    P_rem[1] = max(P_load_1, 0);
-//calculateRemainingAvailableGeneratorPower2(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist )
-//sum( if gen_exist[j] then max(0, P_rated[j]) else 0 for j in i+1:N )
-//---------------- Greedy pass across ALL generators ( in the model) ----------------
-    for i in 1:N loop
-      
-      if gen_exist[i] then
-        (P_gen_cmd[i], P_bat_each[i], P_unmet_each[i], P_charge_each[i], P_node_collection[i]) = calculateGeneratorPower(
-        current_engine_indx = i, 
-        last_active_engine_indx = lastActive, 
-        demand = P_rem[i], P_idle = P_idle[i], P_lo = P_opt_lo[i], 
-        P_eff = P_most_eff[i], P_hi = P_opt_hi[i], P_max = P_rated[i], 
-        useBattery = batteryInstalled, Battery_Capability = P_cap_now, 
-        chargeIntent = batNeedsChargingR, abs_battery_charging_limit = P_charging_max, 
-        remainingGeneratorPower =calculateRemaingingAvalibleGeneratorPower(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist, engineHasFuel=Generator_has_fuel ),
-        generatorHasFuel = Generator_has_fuel[i],
-        current_SOC = SOC_1 );
-      else
-        P_gen_cmd[i] = 0;
-        P_bat_each[i] = 0;
-        P_unmet_each[i] = P_rem[i];
-        P_charge_each[i] = 0;
-        P_node_collection[i] = 20;
-      end if;
-      if i < N then
-        P_rem[i + 1] = P_unmet_each[i];
-      end if;
-    end for;
-//---------------- Battery aggregation ----------------
-// discharge to bus: only last stage uses battery; but sum() is fine (others are 0)
-    P_battery_1 = min(sum(P_bat_each), P_cap_now);
-// charge request: cap to charger/SoC limit (positive means "please charge by this much")
-    P_batt_charge_request = min(sum(P_charge_each), P_charge_cap_now);
-//---------------- Expose per-gen outputs ----------------
-    gen1_output = P_gen_cmd[1]/gen_1_rated_gen;
-    gen2_output = P_gen_cmd[2]/gen_2_rated_gen;
-    gen3_output = P_gen_cmd[3]/gen_3_rated_gen;
-    gen4_output = P_gen_cmd[4]/gen_4_rated_gen;
-    gen5_output = P_gen_cmd[5]/gen_5_rated_gen;
-    gen6_output = P_gen_cmd[6]/gen_6_rated_gen;
-    gen7_output = P_gen_cmd[7]/gen_7_rated_gen;
-    gen8_output = P_gen_cmd[8]/gen_8_rated_gen;
-    gen9_output = P_gen_cmd[9]/gen_9_rated_gen;
-    gen10_output = P_gen_cmd[10]/gen_10_rated_gen;
-    annotation(
-      Diagram(coordinateSystem(extent = {{-120, 120}, {120, -160}})),
-      Icon(graphics = {Rectangle(fillColor = {255, 255, 255}, lineThickness = 1, extent = {{-100, 100}, {100, -100}}), Rectangle(fillColor = {57, 182, 50}, fillPattern = FillPattern.Cross, extent = {{-60, 60}, {60, -60}}), Text(origin = {1, 4}, extent = {{-41, 28}, {41, -28}}, textString = "12")}, coordinateSystem(extent = {{-120, 120}, {120, -140}})));
-    end IndividualControllerCore12_85MCR;
-
-      model IndividualControllerCore11WithFuelLimit
-      /*Controller core that allows the battery charging in effcient zone
-            Generator 1 will always run @ P_max as soon as it detects battery is in charging mode and power demand is above pMax, makes sure generator does not  */
-      /*Generator also control their power output when the excess power is greater than */
-      /*Inherint from the controller version 6, and further reduce the fuel useage at node 1.6, if the battery can not cover the demand  (where demand is in between pIdle and pLo), then battery do not run generator duns at Idle (change to genertor runs at demand)*/
-      /*Adding feature of fuel level tracking, and fuel tank limit: now if the fuel tank for a specific engine is deplited, then engine output 0;*/
-      
-      function determineIfEngineHasFuel
-        input Integer currentGenIdx;
-        input Real dieselLimit;
-        input Real altFuelLimit; 
-        input Real hydroLimit;
-        input Real generatorsFuelType[:];
-        input Real fuelUsageByType[:];
-        output Boolean has_fuel;
-      algorithm 
-        if generatorsFuelType[currentGenIdx] == 846 then  // if the generator is a diesel generator
-           has_fuel := if noEvent(dieselLimit >= fuelUsageByType[1] ) then true else false;
-        elseif generatorsFuelType[currentGenIdx] == 791 then // if the generator is a methanol generation
-            has_fuel := if noEvent(altFuelLimit>= fuelUsageByType[2] ) then true else false;
-        else // if the  generator act as fuel cell
-            has_fuel := if noEvent(hydroLimit>= fuelUsageByType[3] ) then true else false;
-        end if;  
-      end determineIfEngineHasFuel;
-      function calculateRemaingingAvalibleGeneratorPower
-        input Integer currentGenIndex;
-        input Integer  totalGenCount; // it is 10
-        input Real engineRatedPower[:]; // an one dementinal array of size 10, contains real on the rated power of the engine
-        input Boolean  engineExist[:];        // an one dementional array of size 10, contains boolean on whether an engine exist
-        input Boolean engineHasFuel[:];         // one dementional array size of 10, every element contains the status of the fuel tank
-        output Real remainingAvalibleGeneratorPower;
-       
-       algorithm 
-        remainingAvalibleGeneratorPower := 0;
-// loop every engine after the current engine ,  if the engine exist and the engine has fuel then add the power Reamaining Ava power
-        for i in currentGenIndex +1 : totalGenCount loop
-          if engineExist[i] and engineHasFuel[i] then
-            remainingAvalibleGeneratorPower :=  remainingAvalibleGeneratorPower +engineRatedPower[i];
-          end if ;
-        end for; 
-      end calculateRemaingingAvalibleGeneratorPower;
-      
-    
-      function calculateGeneratorPower "Per-gen allocator with efficient target pEff and richer battery participation"
-        input Integer current_engine_indx;
-        input Integer last_active_engine_indx;
-        input Real demand "Remaining demand (W, >=0)";
-        input Real P_idle "Idle (W)";
-        input Real P_lo "Optimal lower bound (W)";
-        input Real P_eff "Most efficient point (W)";
-        input Real P_hi "Optimal upper bound (W)";
-        input Real P_max "Rated max (W)";
-        input Boolean useBattery;
-        input Real Battery_Capability "Max discharge available now (W, >=0)";
-        input Real remainingGeneratorPower;
-        // input Boolean batteryNeedsCharging;
-        input Real chargeIntent "0..1";
-        input Real abs_battery_charging_limit "The absolute power can be delievered to battery for charging";
-        input Boolean generatorHasFuel "A boolean variable that records the tank status of th current generator" ;
-        output Real y "Generator setpoint (W)";
-        output Real battery_gen "Battery DIScharge to bus (W, >=0)";
-        output Real unmet "Remainder to next gen (W, >=0)";
-        output Real charging_gen "Charge power absorbed (W, >=0)";
-        output Real nodeTracker "Track the fucking node";
-      protected
-        Real pIdle, pLo, pEff, pHi, pMax, yCand, shortfall, surplus, cap;
-        Real tempNode;
-        Boolean isLast;
-        Boolean needsCharge = chargeIntent > 0.5;
-      algorithm
-// --- 0) sanitize bounds: pIdle <= pLo <= pEff <= pHi <= pMax
-        pIdle := max(0, P_idle);
-        pMax := max(pIdle, P_max);
-        pLo := min(max(pIdle, P_lo), pMax);
-        pEff := min(max(pLo, P_eff), pMax);
-        pHi := min(max(pEff, P_hi), pMax);
-        isLast := (current_engine_indx == last_active_engine_indx);
-        cap := max(0, Battery_Capability);
-  // --- 0) before selecting a generator output canidateyCand, check if there is fuel for this generator.
-if generatorHasFuel then
-              // --- 1) choose generator a policy target yCand (no battery applied yet) ---
-if noEvent(demand <= 0) then
-// No demand
-              yCand := 0;
-              tempNode := 1.1;
-        /*
-            if useBattery then 
-                yCand := 0;
-            else 
-                yCand  := 0; 
-             end if;*/
-       elseif noEvent(demand <= pIdle) then
-// Below idle:
-// if using battery:
-//   - if batteryNeedsCharging: push gen to pIdle and charge with surplus
-//   - else: if battery can cover, keep gen at 0; else gen at pIdle
-// else (no battery): run at idle
-              if useBattery then
-                if needsCharge then
-                  yCand := min((demand + abs_battery_charging_limit), pEff);
-                  tempNode := 1.2;
-                else
-                  yCand := if noEvent(cap >= demand) then 0 else pIdle;
-                  tempNode := 1.3;
-                end if;
+            if useBattery then
+              if noEvent(cap > 0) then
+                yCand := pHi;
+// non-last keeps pHi and passes the res
+                tempNode := 4.2;
               else
-                yCand := pIdle;
-                tempNode := 1.4;
-              end if;
-       elseif noEvent(demand <= pLo) then
-// Between idle and lower bound:
-              if useBattery then
-                if needsCharge then
-                  yCand := min((demand + abs_battery_charging_limit), pEff);
-                  tempNode := 1.5;
+                if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
+                      yCand  := pHi;
+                      tempNode := 4.21;
                 else
-                  yCand := if noEvent(cap >= demand) then 0 else max(pIdle,demand-cap);
-                  tempNode := 1.6;
-                end if;
-              else
-                yCand := demand;
-                tempNode := 1.7;
-              end if;
-            elseif noEvent(demand <= pHi) then
-// Inside the optimal band:
-// if battery:
-//   if charging:
-//       - if demand < pEff: set gen to pEff (surplus charges)
-//       - else: track demand (no charge)
-//   else (ready to discharge):
-//       - if demand < pEff: track demand (battery idle)
-//       - else demand >= pEff:
-//           - if cap >= (demand - pEff): set gen = pEff (battery covers the rest)
-//           - else: set gen = demand - cap  (battery gives what it can)
-// else: track demand
-              if useBattery then
-                if needsCharge then
-                  yCand := if noEvent(demand < pEff) then min(pEff,demand+abs_battery_charging_limit) else demand;
-                  tempNode := 2.0;
-                else
-                  if noEvent(demand < pEff) then
-                    yCand := demand;
-                    tempNode := 2.1;
-                  else
-                    yCand := if noEvent(cap >= demand - pEff) then pEff else demand - cap;
-                    tempNode := 2.2;
-                  end if;
-                end if;
-              else
-                yCand := demand;
-                tempNode := 2.3;
-              end if;
-            elseif noEvent(demand <= pMax) then
-// Between pHi and rated:
-// If last gen:
-//   if battery:
-//     try to use battery to pull towards pEff first, else pHi, else as much as possible (demand - cap)
-//   else: track demand (last gen, no battery)
-// If not last: sit at pHi and pass along
-              if isLast then
-                if useBattery then
-                  if noEvent(cap >= demand - pEff) then
-                    yCand := pEff;
-                    tempNode := 3.1;
-                  elseif noEvent(cap >= demand - pHi) then
-                    yCand := pHi;
-                    tempNode := 3.2;
-                  else
-                    yCand := demand - cap;
-                    tempNode := 3.3;
-                  end if;
-                else
-                  yCand := demand;
-                  tempNode := 3.4;
-                end if;
-              else
-                if noEvent(demand - pHi  <= remainingGeneratorPower) then
-                  yCand := pHi;
-                  tempNode := 3.51;
-                else
-                  yCand := pMax;
-                  tempNode := 3.52;
+                      yCand := pMax  ;
+                      tempNode  := 4.22;
                 end if ;
               end if;
-            else
-            // If last gen:
-//   if battery:
-//     try to hit pEff; else pHi; else pMax; else demand - cap
-//   else: demand (you may choose pMax and pass unmet to keep symmetry; controller’s choice)
-// If not last: cap at pMax or pHi? – your policy said hold to pMax when last, pHi otherwise
-if isLast then
-                    if useBattery then
-                      if noEvent(cap >= demand - pEff) then
-                        yCand := pEff;
-                        tempNode := 3.6;
-                      elseif noEvent(cap >= demand - pHi) then
-                        yCand := pHi;
-                        tempNode := 3.7;
-                      elseif noEvent(cap >= demand - pMax) then
-                        yCand := pMax;
-                        tempNode := 3.8;
-                      else
-                        yCand := demand - cap;
-                        tempNode := 3.9;
-                      end if;
-                    else
-                      yCand := pMax;
-// this is the last generator and there is no battery , work as hard as possible
-                      tempNode := 4.1;
-                    end if;
-                  else
-                    if useBattery then
-                      if noEvent(cap > 0) then
-                        yCand := pHi;
-// non-last keeps pHi and passes the res
-                        tempNode := 4.2;
-                      else
-                        if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
-                              yCand  := pHi;
-                              tempNode := 4.21;
-                        else
-                              yCand := pMax ;
-                              tempNode  := 4.22;
-                        end if ;
-                      end if;
-                    else // if this is not the last generator and there is no battery
-                      if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
-                             yCand  := pHi;
-                             tempNode := 4.31;
-                      else
-                             yCand := pMax;
-                             tempNode := 4.32;
-                      end if;
-                    end if;
-                  end if;
-                end if;
-        else
-// no power production if no fuel.
-            yCand := 0;
-            tempNode  :=1.1;
-        end if;
-// Final clamp for safety, making sure yCand is bigger than 0 and smaller than pMax
-        yCand := min(max(yCand, 0), pMax);
-// --- 2) settlement: compute surplus/shortfall and battery/pass-down ---
-        charging_gen := 0;
-        battery_gen := 0;
-        surplus := max(yCand - demand, 0);
-// if the generate is assigned with a number that can result in a surplus
-// new addition : checking if the surpulse is greater than battery max chargin rate
-        if noEvent(surplus > 0) then
-    
-          if needsCharge and useBattery then
-            if noEvent(surplus > abs_battery_charging_limit) then
-              charging_gen := abs_battery_charging_limit;
-              y := demand + abs_battery_charging_limit;
-              unmet := 0;
-              return;
-            else
-              charging_gen := surplus;
-              y := yCand;
-              unmet := 0;
-              return;
+            else // if this is not the last generator and there is no battery
+              if noEvent(demand  - pHi <= remainingGeneratorPower) then // if we let the generator run at pHi when this is not the last gen and battery not capable, will the unmet power handled by the rest Generator
+                     yCand  := pHi;
+                     tempNode := 4.31;
+              else
+                     yCand := pMax ;
+                     tempNode := 4.32;
+              end if;
             end if;
           end if;
         end if;
-        nodeTracker := tempNode;
-        shortfall := max(demand - yCand, 0);
-        if isLast and useBattery and not needsCharge then
-          battery_gen := min(cap, shortfall);
-        else
-          battery_gen := 0;
-        end if;
-          unmet := max(shortfall - battery_gen, 0);
+  else
+// no power production if no fuel.
+      yCand := 0;
+      tempNode  :=1.1;
+  end if;
+// Final clamp for safety, making sure yCand is bigger than 0 and smaller than pMax
+  yCand := min(max(yCand, 0), pMax );
+// --- 2) settlement: compute surplus/shortfall and battery/pass-down ---
+  charging_gen := 0;
+  battery_gen := 0;
+  surplus := max(yCand - demand, 0);
+// if the generate is assigned with a number that can result in a surplus
+// new addition : checking if the surpulse is greater than battery max chargin rate
+  if noEvent(surplus > 0) then
+    if  useBattery then //  and needsCharge
+      if noEvent(surplus > abs_battery_charging_limit) then
+        charging_gen := abs_battery_charging_limit;
+        y := demand + abs_battery_charging_limit;
+        unmet := 0;
+        return;
+      else
+        charging_gen := surplus;
         y := yCand;
-      end calculateGeneratorPower;
-    
-      parameter Integer N = 10 "Maximum generator slots";
-      // existence flags (set at init)
-      parameter Boolean gen_1_exist = true;
-      parameter Boolean gen_2_exist = true;
-      parameter Boolean gen_3_exist = false;
-      parameter Boolean gen_4_exist = false;
-      parameter Boolean gen_5_exist = false;
-      parameter Boolean gen_6_exist = false;
-      parameter Boolean gen_7_exist = false;
-      parameter Boolean gen_8_exist = false;
-      parameter Boolean gen_9_exist = false;
-      parameter Boolean gen_10_exist = false;
-      parameter Boolean gen_exist[N] = {gen_1_exist, gen_2_exist, gen_3_exist, gen_4_exist, gen_5_exist, gen_6_exist, gen_7_exist, gen_8_exist, gen_9_exist, gen_10_exist};
-      // idle / rated power (W)
-      parameter Real gen_1_idle_gen = 0;
-      parameter Real gen_2_idle_gen = 0;
-      parameter Real gen_3_idle_gen = 0;
-      parameter Real gen_4_idle_gen = 0;
-      parameter Real gen_5_idle_gen = 0;
-      parameter Real gen_6_idle_gen = 0;
-      parameter Real gen_7_idle_gen = 0;
-      parameter Real gen_8_idle_gen = 0;
-      parameter Real gen_9_idle_gen = 0;
-      parameter Real gen_10_idle_gen = 0;
-      parameter Real P_idle[N] = {gen_1_idle_gen, gen_2_idle_gen, gen_3_idle_gen, gen_4_idle_gen, gen_5_idle_gen, gen_6_idle_gen, gen_7_idle_gen, gen_8_idle_gen, gen_9_idle_gen, gen_10_idle_gen};
-      parameter Real gen_1_rated_gen = 0;
-      parameter Real gen_2_rated_gen = 0;
-      parameter Real gen_3_rated_gen = 0;
-      parameter Real gen_4_rated_gen = 0;
-      parameter Real gen_5_rated_gen = 0;
-      parameter Real gen_6_rated_gen = 0;
-      parameter Real gen_7_rated_gen = 0;
-      parameter Real gen_8_rated_gen = 0;
-      parameter Real gen_9_rated_gen = 0;
-      parameter Real gen_10_rated_gen = 0;
-      parameter Real P_rated[N] = {gen_1_rated_gen, gen_2_rated_gen, gen_3_rated_gen, gen_4_rated_gen, gen_5_rated_gen, gen_6_rated_gen, gen_7_rated_gen, gen_8_rated_gen, gen_9_rated_gen, gen_10_rated_gen};
-      // Paraemter fuel type, send from main model
-      parameter Real generators_fuel_type[10] ={791, 846, 846, 846, 846, 846, 846, 846, 846, 846};
-      // Parameter Temp, local, diesel limit
-      parameter Real dieseLimitLocal = 230236;
-      parameter Real methanolLimitLocal = 5000;
-      parameter Real hydrogenLimitLocal = 0;
-      // battery capability (limits)
-      parameter Real P_rated_battery = 2e5 "Max discharge capability (W)";
-      parameter Real P_charging_max = P_rated_battery "Max charging power (W)";
-      parameter Real P_discharging_max = -P_rated_battery "Alias for readability";
-      // SoC thresholds for hysteresis and smooth caps
-      parameter Real SOC_min = 0.25 "Below this  prefer charging";
-      parameter Real SOC_max = 0.80 "Above this  disallow charging";
-      parameter Real smooth_charge_percentage = 0.10 "Width of smooth transition (fraction of full SoC)";
-      //---------------- Connectors ----------------
-      // demand & SoC
-      Modelica.Blocks.Interfaces.RealInput P_load_1 annotation(
-        Placement(transformation(origin = {-110, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-88, -110}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
-      //"Net power demand (+ = demand)"; // adjust if your sign convention is opposite
-      Modelica.Blocks.Interfaces.RealInput SOC_1 annotation(
-        Placement(transformation(origin = {-90, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-68, -110}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
-      // optimal bounds from BSFC blocks
-      Modelica.Blocks.Interfaces.RealInput P_gen_1_Optim_Upper annotation(
-        Placement(transformation(origin = {-110, 90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 90}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_1_Optim_Lower annotation(
-        Placement(transformation(origin = {-110, 70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 70}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_2_Optim_Upper annotation(
-        Placement(transformation(origin = {-110, 50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 50}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_2_Optim_Lower annotation(
-        Placement(transformation(origin = {-110, 30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 30}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_3_Optim_Upper annotation(
-        Placement(transformation(origin = {-110, 10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 10}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_3_Optim_Lower annotation(
-        Placement(transformation(origin = {-110, -10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, -10}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_4_Optim_Upper annotation(
-        Placement(transformation(origin = {-70, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -30}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_4_Optim_Lower annotation(
-        Placement(transformation(origin = {-50, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -50}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_5_Optim_Upper annotation(
-        Placement(transformation(origin = {-30, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -70}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_5_Optim_Lower annotation(
-        Placement(transformation(origin = {-10, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -90}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealInput P_gen_6_Optim_Upper annotation(
-        Placement(transformation(origin = {-110, -30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-90, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_6_Optim_Lower annotation(
-        Placement(transformation(origin = {-110, -48}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-70, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_7_Optim_Upper annotation(
-        Placement(transformation(origin = {-110, -70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-50, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_7_Optim_Lower annotation(
-        Placement(transformation(origin = {-110, -90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-30, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_8_Optim_Upper annotation(
-        Placement(transformation(origin = {-110, -110}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-10, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_8_Optim_Lower annotation(
-        Placement(transformation(origin = {-110, -130}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {10, 110}, extent = {{-10, 10}, {10, -10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_9_Optim_Upper annotation(
-        Placement(transformation(origin = {-14, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {30, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_9_Optim_Lower annotation(
-        Placement(transformation(origin = {18, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {50, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_10_Optim_Upper annotation(
-        Placement(transformation(origin = {-72, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {70, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput P_gen_10_Optim_Lower annotation(
-        Placement(transformation(origin = {-40, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {90, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-      // input most effcient power
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr1 annotation(
-        Placement(transformation(origin = {64, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {6, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr2 annotation(
-        Placement(transformation(origin = {70, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {16, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr3 annotation(
-        Placement(transformation(origin = {76, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {26, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr4 annotation(
-        Placement(transformation(origin = {82, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {36, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr5 annotation(
-        Placement(transformation(origin = {88, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {46, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr6 annotation(
-        Placement(transformation(origin = {94, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {56, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr7 annotation(
-        Placement(transformation(origin = {100, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {66, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr8 annotation(
-        Placement(transformation(origin = {106, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {76, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr9 annotation(
-        Placement(transformation(origin = {112, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {86, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput genMostEffPwr10 annotation(
-        Placement(transformation(origin = {118, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {96, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
-      // input for current
-      Modelica.Blocks.Interfaces.RealInput dieselUsageCore annotation(
-        Placement(transformation(origin = {6, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-48, -106}, extent = {{6, -6}, {-6, 6}}, rotation = -90)));
-      Modelica.Blocks.Interfaces.RealInput altFuellUsageCore annotation(
-        Placement(transformation(origin = {14, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-36, -106}, extent = {{-6, -6}, {6, 6}}, rotation = 90)));
-      Modelica.Blocks.Interfaces.RealInput hydroUsageCore annotation(
-        Placement(transformation(origin = {22, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-24, -106}, extent = {{-6, -6}, {6, 6}}, rotation = 90)));
-    // outputs per gen
-      Modelica.Blocks.Interfaces.RealOutput gen2_output annotation(
-        Placement(transformation(origin = {110, 70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 70}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen3_output annotation(
-        Placement(transformation(origin = {110, 50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 50}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen4_output annotation(
-        Placement(transformation(origin = {110, 30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 30}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen5_output annotation(
-        Placement(transformation(origin = {110, 10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 10}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen6_output annotation(
-        Placement(transformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen7_output annotation(
-        Placement(transformation(origin = {110, -32}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -30}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen8_output annotation(
-        Placement(transformation(origin = {110, -70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -50}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen9_output annotation(
-        Placement(transformation(origin = {110, -50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -70}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen10_output annotation(
-        Placement(transformation(origin = {110, -90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -90}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput gen1_output annotation(
-        Placement(transformation(origin = {110, 90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 90}, extent = {{-10, -10}, {10, 10}})));
-      // battery outputs
-      Modelica.Blocks.Interfaces.RealOutput P_battery_1 "Battery discharge to bus (+)" annotation(
-        Placement(transformation(origin = {110, -110}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -110}, extent = {{-10, -10}, {10, 10}})));
-      Modelica.Blocks.Interfaces.RealOutput P_batt_charge_request "Positive charge request (W) to be absorbed by charger/BMS";
-      //---------------- Internals ----------------
-      // optimal bound arrays
-      Real P_opt_lo[N], P_opt_hi[N], P_most_eff[N];
-      // allocator arrays
-      Real P_gen_cmd[N] "Generator setpoints (W)";
-      Real P_bat_each[N] "Battery discharge used at each stage (only last > 0)";
-      Real P_charge_each[N] "Charging power contributed by each stage";
-      Real P_unmet_each[N] "Unmet passed from each stage";
-      Real P_rem[N] "Remainder chain (demand -> unmet -> ...)";
-      Real P_node_collection[N];
-        
-      Boolean  Generator_has_fuel[N];
-      Real FuelUsageByType [3];
-      // SoC smoothed gates (0..1)
-      Real smooth_soc_min "fraction enabling discharge";
-      Real smooth_soc_max "fraction enabling charge";
-      // battery state flag
-      Real batNeedsChargingR(start = 0, fixed = true) "0=not charging, 1=needs charging";
-      Boolean batNeedsCharging = batNeedsChargingR > 0.5;
-      // convenience params
-      parameter Boolean batteryInstalled = (P_rated_battery > 100);
-      // indices/count
-      parameter Integer lastActive = max({if gen_exist[i] then i else 0 for i in 1:N}) "Physical index of last existing generator (0 if none)";
-      parameter Integer nActive = sum({if gen_exist[i] then 1 else 0 for i in 1:N});
-      // instantaneous battery caps (W)
-      Real P_cap_now "available discharge cap now (W)";
-      Real P_charge_cap_now "available charge cap now (W)";
-      //---------------- Local smoothstep helper ----------------
+        unmet := 0;
+        return;
+      end if;
+    end if;
+  end if;
+  nodeTracker := tempNode;
+  shortfall := max(demand - yCand, 0);
+  if isLast and useBattery  then //and not needsCharge
+    battery_gen := min(cap, shortfall);
+  else
+    battery_gen := 0;
+  end if;
+    unmet := max(shortfall - battery_gen, 0);
+    y := yCand;
+end calculateGeneratorPower;
 
-      function smoothStepCubic
-        input Real u "0..1-ish";
-        output Real y;
-      algorithm
-        if u <= 0 then
-          y := 0;
-        elseif u >= 1 then
-          y := 1;
-        else
+parameter Integer N = 10 "Maximum generator slots";
+// existence flags (set at init)
+parameter Boolean gen_1_exist = true;
+parameter Boolean gen_2_exist = false;
+parameter Boolean gen_3_exist = false;
+parameter Boolean gen_4_exist = false;
+parameter Boolean gen_5_exist = false;
+parameter Boolean gen_6_exist = false;
+parameter Boolean gen_7_exist = false;
+parameter Boolean gen_8_exist = false;
+parameter Boolean gen_9_exist = false;
+parameter Boolean gen_10_exist = false;
+parameter Boolean gen_exist[N] = {gen_1_exist, gen_2_exist, gen_3_exist, gen_4_exist, gen_5_exist, gen_6_exist, gen_7_exist, gen_8_exist, gen_9_exist, gen_10_exist};
+// idle / rated power (W)
+parameter Real gen_1_idle_gen = 0;
+parameter Real gen_2_idle_gen = 0;
+parameter Real gen_3_idle_gen = 0;
+parameter Real gen_4_idle_gen = 0;
+parameter Real gen_5_idle_gen = 0;
+parameter Real gen_6_idle_gen = 0;
+parameter Real gen_7_idle_gen = 0;
+parameter Real gen_8_idle_gen = 0;
+parameter Real gen_9_idle_gen = 0;
+parameter Real gen_10_idle_gen = 0;
+parameter Real P_idle[N] = {gen_1_idle_gen, gen_2_idle_gen, gen_3_idle_gen, gen_4_idle_gen, gen_5_idle_gen, gen_6_idle_gen, gen_7_idle_gen, gen_8_idle_gen, gen_9_idle_gen, gen_10_idle_gen};
+parameter Real gen_1_rated_gen = 0;
+parameter Real gen_2_rated_gen = 0;
+parameter Real gen_3_rated_gen = 0;
+parameter Real gen_4_rated_gen = 0;
+parameter Real gen_5_rated_gen = 0;
+parameter Real gen_6_rated_gen = 0;
+parameter Real gen_7_rated_gen = 0;
+parameter Real gen_8_rated_gen = 0;
+parameter Real gen_9_rated_gen = 0;
+parameter Real gen_10_rated_gen = 0;
+parameter Real P_rated[N] = {gen_1_rated_gen * 1 , gen_2_rated_gen* 0.85, gen_3_rated_gen* 0.85, gen_4_rated_gen* 0.85, gen_5_rated_gen* 0.85, gen_6_rated_gen* 0.85, gen_7_rated_gen* 0.85, gen_8_rated_gen* 0.85, gen_9_rated_gen* 0.85, gen_10_rated_gen* 0.85};
+// Paraemter fuel type, send from main model
+parameter Real generators_fuel_type[10] ={791, 846, 846, 846, 846, 846, 846, 846, 846, 846};
+// Parameter Temp, local, diesel limit
+parameter Real dieseLimitLocal = 230236;
+parameter Real methanolLimitLocal = 230236;
+parameter Real hydrogenLimitLocal = 0;
+// battery capability (limits)
+parameter Real P_rated_battery = 2e5 "Max discharge capability (W)";
+parameter Real P_charging_max = P_rated_battery "Max charging power (W)";
+parameter Real P_discharging_max = -P_rated_battery "Alias for readability";
+// SoC thresholds for hysteresis and smooth caps
+parameter Real SOC_min = 0.25 "Below this  prefer charging";
+parameter Real SOC_max = 0.80 "Above this  disallow charging";
+parameter Real smooth_charge_percentage = 0.10 "Width of smooth transition (fraction of full SoC)";
+// Secondary SOC Threshold
+parameter Real  SOC_sec_check = 0.7 "Seconday SOC check";
+//---------------- Connectors ----------------
+  // demand & SoC
+Modelica.Blocks.Interfaces.RealInput P_load_1 annotation(
+  Placement(transformation(origin = {-110, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-88, -110}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
+//"Net power demand (+ = demand)"; // adjust if your sign convention is opposite
+Modelica.Blocks.Interfaces.RealInput SOC_1 annotation(
+  Placement(transformation(origin = {-90, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-68, -110}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
+// optimal bounds from BSFC blocks
+Modelica.Blocks.Interfaces.RealInput P_gen_1_Optim_Upper annotation(
+  Placement(transformation(origin = {-110, 90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 90}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_1_Optim_Lower annotation(
+  Placement(transformation(origin = {-110, 70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 70}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_2_Optim_Upper annotation(
+  Placement(transformation(origin = {-110, 50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 50}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_2_Optim_Lower annotation(
+  Placement(transformation(origin = {-110, 30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 30}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_3_Optim_Upper annotation(
+  Placement(transformation(origin = {-110, 10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, 10}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_3_Optim_Lower annotation(
+  Placement(transformation(origin = {-110, -10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-110, -10}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_4_Optim_Upper annotation(
+  Placement(transformation(origin = {-70, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -30}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_4_Optim_Lower annotation(
+  Placement(transformation(origin = {-50, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -50}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_5_Optim_Upper annotation(
+  Placement(transformation(origin = {-30, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -70}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_5_Optim_Lower annotation(
+  Placement(transformation(origin = {-10, -170}, extent = {{-10, -10}, {10, 10}}, rotation = 90), iconTransformation(origin = {-110, -90}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealInput P_gen_6_Optim_Upper annotation(
+  Placement(transformation(origin = {-110, -30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-90, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_6_Optim_Lower annotation(
+  Placement(transformation(origin = {-110, -48}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-70, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_7_Optim_Upper annotation(
+  Placement(transformation(origin = {-110, -70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-50, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_7_Optim_Lower annotation(
+  Placement(transformation(origin = {-110, -90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-30, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_8_Optim_Upper annotation(
+  Placement(transformation(origin = {-110, -110}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {-10, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_8_Optim_Lower annotation(
+  Placement(transformation(origin = {-110, -130}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {10, 110}, extent = {{-10, 10}, {10, -10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_9_Optim_Upper annotation(
+  Placement(transformation(origin = {-14, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {30, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_9_Optim_Lower annotation(
+  Placement(transformation(origin = {18, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {50, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_10_Optim_Upper annotation(
+  Placement(transformation(origin = {-72, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {70, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput P_gen_10_Optim_Lower annotation(
+  Placement(transformation(origin = {-40, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90), iconTransformation(origin = {90, 110}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+// input most effcient power
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr1 annotation(
+  Placement(transformation(origin = {64, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {6, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr2 annotation(
+  Placement(transformation(origin = {70, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {16, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr3 annotation(
+  Placement(transformation(origin = {76, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {26, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr4 annotation(
+  Placement(transformation(origin = {82, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {36, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr5 annotation(
+  Placement(transformation(origin = {88, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {46, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr6 annotation(
+  Placement(transformation(origin = {94, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {56, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr7 annotation(
+  Placement(transformation(origin = {100, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {66, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr8 annotation(
+  Placement(transformation(origin = {106, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {76, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr9 annotation(
+  Placement(transformation(origin = {112, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {86, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput genMostEffPwr10 annotation(
+  Placement(transformation(origin = {118, -166}, extent = {{-4, -4}, {4, 4}}, rotation = 90), iconTransformation(origin = {96, -104}, extent = {{-4, -4}, {4, 4}}, rotation = 90)));
+// input for current
+Modelica.Blocks.Interfaces.RealInput dieselUsageCore annotation(
+  Placement(transformation(origin = {6, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-48, -106}, extent = {{6, -6}, {-6, 6}}, rotation = -90)));
+Modelica.Blocks.Interfaces.RealInput altFuellUsageCore annotation(
+  Placement(transformation(origin = {14, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-36, -106}, extent = {{-6, -6}, {6, 6}}, rotation = 90)));
+Modelica.Blocks.Interfaces.RealInput hydroUsageCore annotation(
+  Placement(transformation(origin = {22, -166}, extent = {{-6, -6}, {6, 6}}, rotation = 90), iconTransformation(origin = {-24, -106}, extent = {{-6, -6}, {6, 6}}, rotation = 90)));
+// outputs per gen
+Modelica.Blocks.Interfaces.RealOutput gen2_output annotation(
+  Placement(transformation(origin = {110, 70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 70}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen3_output annotation(
+  Placement(transformation(origin = {110, 50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 50}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen4_output annotation(
+  Placement(transformation(origin = {110, 30}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 30}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen5_output annotation(
+  Placement(transformation(origin = {110, 10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 10}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen6_output annotation(
+  Placement(transformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -10}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen7_output annotation(
+  Placement(transformation(origin = {110, -32}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -30}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen8_output annotation(
+  Placement(transformation(origin = {110, -70}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -50}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen9_output annotation(
+  Placement(transformation(origin = {110, -50}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -70}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen10_output annotation(
+  Placement(transformation(origin = {110, -90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -90}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput gen1_output annotation(
+  Placement(transformation(origin = {110, 90}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, 90}, extent = {{-10, -10}, {10, 10}})));
+// battery outputs
+Modelica.Blocks.Interfaces.RealOutput P_battery_1 "Battery discharge to bus (+)" annotation(
+  Placement(transformation(origin = {110, -110}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {110, -110}, extent = {{-10, -10}, {10, 10}})));
+Modelica.Blocks.Interfaces.RealOutput P_batt_charge_request "Positive charge request (W) to be absorbed by charger/BMS";
+//---------------- Internals ----------------
+  // optimal bound arrays
+Real P_opt_lo[N], P_opt_hi[N], P_most_eff[N];
+// allocator arrays
+Real P_gen_cmd[N] "Generator setpoints (W)";
+Real P_bat_each[N] "Battery discharge used at each stage (only last > 0)";
+Real P_charge_each[N] "Charging power contributed by each stage";
+Real P_unmet_each[N] "Unmet passed from each stage";
+Real P_rem[N] "Remainder chain (demand -> unmet -> ...)";
+Real P_node_collection[N];
+  
+Boolean  Generator_has_fuel[N];
+Real FuelUsageByType [3];
+// SoC smoothed gates (0..1)
+Real smooth_soc_min "fraction enabling discharge";
+Real smooth_soc_max "fraction enabling charge";
+// battery state flag
+Real batNeedsChargingR(start = 0, fixed = true) "0=not charging, 1=needs charging";
+Boolean batNeedsCharging = batNeedsChargingR > 0.5;
+// convenience params
+parameter Boolean batteryInstalled = (P_rated_battery > 100);
+// indices/count
+parameter Integer lastActive = max({if gen_exist[i] then i else 0 for i in 1:N}) "Physical index of last existing generator (0 if none)";
+parameter Integer nActive = sum({if gen_exist[i] then 1 else 0 for i in 1:N});
+// instantaneous battery caps (W)
+Real P_cap_now "available discharge cap now (W)";
+Real P_charge_cap_now "available charge cap now (W)";
+//---------------- Local smoothstep helper ----------------
+
+function smoothStepCubic
+  input Real u "0..1-ish";
+  output Real y;
+algorithm
+  if u <= 0 then
+    y := 0;
+  elseif u >= 1 then
+    y := 1;
+  else
 // classic cubic smoothstep: 3u^2 - 2u^3
-          y := 3*u*u - 2*u*u*u;
-        end if;
-      end smoothStepCubic;
-      
-      
-      
-    algorithm
+    y := 3*u*u - 2*u*u*u;
+  end if;
+end smoothStepCubic;
+
+
+
+algorithm
 // SoC hysteresis for "needs charging"
-      when initial() or SOC_1 <= SOC_min or SOC_1 >= SOC_max then
-        batNeedsChargingR := if SOC_1 <= SOC_min then 1 elseif SOC_1 >= SOC_max then 0 else pre(batNeedsChargingR);
-      end when;
-      
-    equation
+when initial() or SOC_1 <= SOC_min or SOC_1 >= SOC_max then
+  batNeedsChargingR := if SOC_1 <= SOC_min then 1 elseif SOC_1 >= SOC_max then 0 else pre(batNeedsChargingR);
+end when;
+
+equation
 //---------------- Map optimal bounds to arrays ----------------
-      P_opt_lo = {P_gen_1_Optim_Lower, P_gen_2_Optim_Lower, P_gen_3_Optim_Lower, P_gen_4_Optim_Lower, P_gen_5_Optim_Lower, P_gen_6_Optim_Lower, P_gen_7_Optim_Lower, P_gen_8_Optim_Lower, P_gen_9_Optim_Lower, P_gen_10_Optim_Lower};
-      P_opt_hi = {P_gen_1_Optim_Upper, P_gen_2_Optim_Upper, P_gen_3_Optim_Upper, P_gen_4_Optim_Upper, P_gen_5_Optim_Upper, P_gen_6_Optim_Upper, P_gen_7_Optim_Upper, P_gen_8_Optim_Upper, P_gen_9_Optim_Upper, P_gen_10_Optim_Upper};
-      P_most_eff = {genMostEffPwr1, genMostEffPwr2, genMostEffPwr3, genMostEffPwr4, genMostEffPwr5, genMostEffPwr6, genMostEffPwr7, genMostEffPwr8, genMostEffPwr9, genMostEffPwr10};
-      FuelUsageByType ={dieselUsageCore, altFuellUsageCore, hydroUsageCore};
-      Generator_has_fuel ={
-        determineIfEngineHasFuel(currentGenIdx = 1, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 2, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 3, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 4, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 5, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 6, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 7, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType=  FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 8, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 9, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
-        determineIfEngineHasFuel(currentGenIdx = 10, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type,fuelUsageByType= FuelUsageByType)
-      };
+P_opt_lo = {P_gen_1_Optim_Lower, P_gen_2_Optim_Lower, P_gen_3_Optim_Lower, P_gen_4_Optim_Lower, P_gen_5_Optim_Lower, P_gen_6_Optim_Lower, P_gen_7_Optim_Lower, P_gen_8_Optim_Lower, P_gen_9_Optim_Lower, P_gen_10_Optim_Lower};
+P_opt_hi = {P_gen_1_Optim_Upper, P_gen_2_Optim_Upper, P_gen_3_Optim_Upper, P_gen_4_Optim_Upper, P_gen_5_Optim_Upper, P_gen_6_Optim_Upper, P_gen_7_Optim_Upper, P_gen_8_Optim_Upper, P_gen_9_Optim_Upper, P_gen_10_Optim_Upper};
+P_most_eff = {genMostEffPwr1, genMostEffPwr2, genMostEffPwr3, genMostEffPwr4, genMostEffPwr5, genMostEffPwr6, genMostEffPwr7, genMostEffPwr8, genMostEffPwr9, genMostEffPwr10};
+FuelUsageByType ={dieselUsageCore, altFuellUsageCore, hydroUsageCore};
+Generator_has_fuel ={
+  determineIfEngineHasFuel(currentGenIdx = 1, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 2, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 3, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 4, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 5, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 6, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 7, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType=  FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 8, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 9, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type, fuelUsageByType= FuelUsageByType),
+  determineIfEngineHasFuel(currentGenIdx = 10, dieselLimit =dieseLimitLocal,  altFuelLimit=methanolLimitLocal, hydroLimit = 0, generatorsFuelType = generators_fuel_type,fuelUsageByType= FuelUsageByType)
+};
 // Generator_has_fuel{};
 //P_node_collection ={gen1Node,gen2Node,gen3Node,gen4Node,gen5Node,gen6Node,gen7Node,gen8Node,gen9Node,gen10Node};
 //---------------- Smooth caps from SoC ----------------
 // discharge allowed ramps in above SOC_min
-      smooth_soc_min = smoothStepCubic((SOC_1 - SOC_min)/max(1e-6, smooth_charge_percentage));
+smooth_soc_min = smoothStepCubic((SOC_1 - SOC_min)/max(1e-6, smooth_charge_percentage));
 // charge allowed ramps out as we pass SOC_max
-      smooth_soc_max = 1 - smoothStepCubic((SOC_1 - SOC_max)/max(1e-6, smooth_charge_percentage));
-      P_cap_now = if batteryInstalled and not batNeedsCharging then min(P_discharging_max, min(0, smooth_soc_min*P_rated_battery)*(-1))*(-1) else 0;
-      P_charge_cap_now = if batteryInstalled then min(P_charging_max, max(0, smooth_soc_max*P_charging_max)) else 0;
+smooth_soc_max = 1 - smoothStepCubic((SOC_1 - SOC_max)/max(1e-6, smooth_charge_percentage));
+P_cap_now = if batteryInstalled and not batNeedsCharging then min(P_discharging_max, min(0, smooth_soc_min*P_rated_battery)*(-1))*(-1) else 0;
+P_charge_cap_now = if batteryInstalled then min(P_charging_max, max(0, smooth_soc_max*P_charging_max)) else 0;
 //---------------- Seed remainder with demand (>=0) ----------------
-      P_rem[1] = max(P_load_1, 0);
+P_rem[1] = max(P_load_1, 0);
 //calculateRemainingAvailableGeneratorPower2(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist )
 //sum( if gen_exist[j] then max(0, P_rated[j]) else 0 for j in i+1:N )
 //---------------- Greedy pass across ALL generators ( in the model) ----------------
-      for i in 1:N loop
-        
-        if gen_exist[i] then
-          (P_gen_cmd[i], P_bat_each[i], P_unmet_each[i], P_charge_each[i], P_node_collection[i]) = calculateGeneratorPower(
-          current_engine_indx = i, 
-          last_active_engine_indx = lastActive, 
-          demand = P_rem[i], P_idle = P_idle[i], P_lo = P_opt_lo[i], 
-          P_eff = P_most_eff[i], P_hi = P_opt_hi[i], P_max = P_rated[i], 
-          useBattery = batteryInstalled, Battery_Capability = P_cap_now, 
-          chargeIntent = batNeedsChargingR, abs_battery_charging_limit = P_charging_max, 
-          remainingGeneratorPower =calculateRemaingingAvalibleGeneratorPower(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist, engineHasFuel=Generator_has_fuel ),
-          generatorHasFuel = Generator_has_fuel[i] );
-        else
-          P_gen_cmd[i] = 0;
-          P_bat_each[i] = 0;
-          P_unmet_each[i] = P_rem[i];
-          P_charge_each[i] = 0;
-          P_node_collection[i] = 20;
-        end if;
-        if i < N then
-          P_rem[i + 1] = P_unmet_each[i];
-        end if;
-      end for;
+for i in 1:N loop
+  
+  if gen_exist[i] then
+    (P_gen_cmd[i], P_bat_each[i], P_unmet_each[i], P_charge_each[i], P_node_collection[i]) = calculateGeneratorPower(
+    current_engine_indx = i, 
+    last_active_engine_indx = lastActive, 
+    demand = P_rem[i], P_idle = P_idle[i], P_lo = P_opt_lo[i], 
+    P_eff = P_most_eff[i], P_hi = P_opt_hi[i], P_max = P_rated[i], 
+    useBattery = batteryInstalled, 
+    Battery_Capability = P_cap_now, 
+    chargeIntent = batNeedsChargingR, 
+    abs_battery_charging_limit = P_charging_max, 
+    remainingGeneratorPower =calculateRemaingingAvalibleGeneratorPower(currentGenIndex = i, totalGenCount = 10 , engineRatedPower =P_rated, engineExist = gen_exist, engineHasFuel=Generator_has_fuel ),
+    generatorHasFuel = Generator_has_fuel[i],
+    current_SOC = SOC_1 );
+  else
+    P_gen_cmd[i] = 0;
+    P_bat_each[i] = 0;
+    P_unmet_each[i] = P_rem[i];
+    P_charge_each[i] = 0;
+    P_node_collection[i] = 20;
+  end if;
+  if i < N then
+    P_rem[i + 1] = P_unmet_each[i];
+  end if;
+end for;
 //---------------- Battery aggregation ----------------
 // discharge to bus: only last stage uses battery; but sum() is fine (others are 0)
-      P_battery_1 = min(sum(P_bat_each), P_cap_now);
+P_battery_1 = min(sum(P_bat_each), P_cap_now);
 // charge request: cap to charger/SoC limit (positive means "please charge by this much")
-      P_batt_charge_request = min(sum(P_charge_each), P_charge_cap_now);
+P_batt_charge_request = min(sum(P_charge_each), P_charge_cap_now);
 //---------------- Expose per-gen outputs ----------------
-      gen1_output = P_gen_cmd[1]/gen_1_rated_gen;
-      gen2_output = P_gen_cmd[2]/gen_2_rated_gen;
-      gen3_output = P_gen_cmd[3]/gen_3_rated_gen;
-      gen4_output = P_gen_cmd[4]/gen_4_rated_gen;
-      gen5_output = P_gen_cmd[5]/gen_5_rated_gen;
-      gen6_output = P_gen_cmd[6]/gen_6_rated_gen;
-      gen7_output = P_gen_cmd[7]/gen_7_rated_gen;
-      gen8_output = P_gen_cmd[8]/gen_8_rated_gen;
-      gen9_output = P_gen_cmd[9]/gen_9_rated_gen;
-      gen10_output = P_gen_cmd[10]/gen_10_rated_gen;
-      annotation(
-        Diagram(coordinateSystem(extent = {{-120, 120}, {120, -160}})),
-        Icon(graphics = {Rectangle(fillColor = {255, 255, 255}, lineThickness = 1, extent = {{-100, 100}, {100, -100}}), Rectangle(fillColor = {182, 0, 0}, fillPattern = FillPattern.CrossDiag, extent = {{-60, 60}, {60, -60}}), Text(origin = {1, 4}, extent = {{-41, 28}, {41, -28}}, textString = "11")}, coordinateSystem(extent = {{-120, 120}, {120, -140}})));
-    end IndividualControllerCore11WithFuelLimit;
+gen1_output = P_gen_cmd[1]/gen_1_rated_gen;
+gen2_output = P_gen_cmd[2]/gen_2_rated_gen;
+gen3_output = P_gen_cmd[3]/gen_3_rated_gen;
+gen4_output = P_gen_cmd[4]/gen_4_rated_gen;
+gen5_output = P_gen_cmd[5]/gen_5_rated_gen;
+gen6_output = P_gen_cmd[6]/gen_6_rated_gen;
+gen7_output = P_gen_cmd[7]/gen_7_rated_gen;
+gen8_output = P_gen_cmd[8]/gen_8_rated_gen;
+gen9_output = P_gen_cmd[9]/gen_9_rated_gen;
+gen10_output = P_gen_cmd[10]/gen_10_rated_gen;
+annotation(
+  Diagram(coordinateSystem(extent = {{-120, 120}, {120, -160}})),
+  Icon(graphics = {Rectangle(fillColor = {255, 255, 255}, lineThickness = 1, extent = {{-100, 100}, {100, -100}}), Rectangle(fillColor = {57, 182, 50}, fillPattern = FillPattern.Cross, extent = {{-60, 60}, {60, -60}}), Text(origin = {1, 4}, extent = {{-41, 28}, {41, -28}}, textString = "12")}, coordinateSystem(extent = {{-120, 120}, {120, -140}})));
+end IndividualControllerCore12_85MCR;
     
   
   
@@ -5345,12 +4809,13 @@ if isLast then
   parameter Real mCtrl_fuelCellPercentage = 1 - mCtrl_dieselGenPercentage;
   /*FUEL PROPERTIES FOR GENERATORS */
   //fuel parameter Generator_Fuel GEN 1
-  //45.9e6 for diesel LHV 
-  parameter Modelica.Units.SI.SpecificEnergy generator_FLHV_1 =  23e6"Fuel LHV";
-  parameter Modelica.Units.SI.Density generator_Frho_1 = 791 "Fuel Density KG/M^3";
-  parameter Real generator_Frho_liq_1 = 791 "Fuel Liquid Density";
-  parameter Real generator_FcarbonContent_1 = 0.86 "Fuel Carbon Content";
-  parameter Modelica.Units.SI.MolarMass generator_MolarMass_1 = 0.233 "Fuel MolarMass";
+  //45.9e6 for diesel LHV, 846 for diesel  density , 0.233kg/mol for molar mass
+  //120e6 for hydrogen LHV @ 350 bar, 26.1 for hydrogen density 2.4e-3 kg/mol for molar mass
+  parameter Modelica.Units.SI.SpecificEnergy generator_FLHV_1 =  120e6"Fuel LHV";
+  parameter Modelica.Units.SI.Density generator_Frho_1 = 26.1 "Fuel Density KG/M^3";
+  parameter Real generator_Frho_liq_1 = 26.1 "Fuel Liquid Density";
+  parameter Real generator_FcarbonContent_1 = 0 "Fuel Carbon Content";
+  parameter Modelica.Units.SI.MolarMass generator_MolarMass_1 = 2.4e-3 "Fuel MolarMass";
   parameter Real generator_M_Flow_Fidle_1 = 0.00008*((0.08451*800));
   parameter Real generator_M_Flow_FRat_1 = 0.00027777777*((0.08451*800));
   parameter Real generator_V_flow_Fidle_1 = 0.22e-5 ;
@@ -5460,7 +4925,7 @@ if isLast then
   parameter Real generator_Eta_El_Const = 0.40;
   parameter Boolean generator_FuelConsumptionIsVolumetric = true;
   /*ENGINE PARAMETER*/
-  parameter Real generator_P_rat_1 = 800000;
+  parameter Real generator_P_rat_1 = 33000;
   parameter Real generator_P_rat_2 = 800000;
   parameter Real generator_P_rat_3 = 330000;
   parameter Real generator_P_rat_4 = 800000;
@@ -5470,7 +4935,7 @@ if isLast then
   parameter Real generator_P_rat_8 = 800000;
   parameter Real generator_P_rat_9 = 800000;
   parameter Real generator_P_rat_10 = 800000;
-  parameter Real generator_P_idle_1 = 80000;
+  parameter Real generator_P_idle_1 = 3300;
   parameter Real generator_P_idle_2 = 80000;
   parameter Real generator_P_idle_3 = 30000;
   parameter Real generator_P_idle_4 = 100000;
@@ -5494,7 +4959,7 @@ if isLast then
   parameter Boolean mCtrl_user_defined_Bounds_diesel_1 = false;
   parameter Real mCtrl_user_defined_upper_bound_diesel_1 = 750;
   parameter Real mCtrl_user_defined_lower_bound_diesel_1 = 400;
-  parameter Real mCtrl_user_defined_BSFC_percentage_1 = 0.001;
+  parameter Real mCtrl_user_defined_BSFC_percentage_1 = 0.05;
   parameter Real mCtrl_user_defined_BSFC_percentage_1_lower = 0.05;
   parameter Real mCtrl_user_defined_most_eff_ouput_1 = 640;
   parameter Boolean mCtrl_user_defined_Bounds_diesel_2 = false;
@@ -5580,7 +5045,7 @@ if isLast then
   parameter Real TotalAccessableHydrogenMass(displayUnit = "kg") = 0"Total Alternative Fuel Mass on Board";
   parameter Real DieselTankLimitSOC(displayUnit = "%") =  0.85 "When Consumption Reaches 85% of the tank then it is considered as dangerous ";
   parameter Real AltFuelTankLimitSOC(displayUnit = "%")=  0.85 "When Consumption Reaches 85% of the tank then it is considered as dangerous  ";
-  parameter Real HydroTankLimitSOC(displayUnit = "%")=  0.85 "When Consumption Reaches 85% of the tank then it is considered as dangerous  ";
+  parameter Real HydroTankLimitSOC(displayUnit = "%")=  0.9 "When Consumption Reaches 85% of the tank then it is considered as dangerous  ";
   parameter Real mCtrlDieselConsumptionLimit = TotalAccessableDieselMass * DieselTankLimitSOC "If the dieesel consumption is near orequal to this number then we conside rthe ";
   parameter Real mCtrlMethanolConsumptionLimit  = TotalAccessableAltFuelMass * AltFuelTankLimitSOC "If the methanol consumption is near orequal to this number then we conside rthe ";
   parameter Real mCtrlHydroCinsomuptionLimit = TotalAccessableAltFuelMass * HydroTankLimitSOC "If the hydrogen consumption is near orequal to this number then we conside rthe ";
@@ -5596,9 +5061,9 @@ if isLast then
   parameter Real battery_Eff_Charge = 0.985;
   parameter Boolean battery_Set_SOC_Final_Start = true;
   // Battery Pmax = 0.1
-  parameter Real battery_Capacity = 1048 * 3.6e6;
-  parameter Real battery_P_max =900000;
-  parameter Real battery_SOC_start = 0.80;
+  parameter Real battery_Capacity = 12.698 * 3.6e6;
+  parameter Real battery_P_max =74400;
+  parameter Real battery_SOC_start = 0.90;
   parameter Modelica.Units.SI.Power electricalGrid_Power_Nominal = P_nominal;
   parameter Real electricalGrid_V_ref = 1000;
   parameter Modelica.Units.SI.Mass idealTank_TankcontentDiesel = 2e14;
@@ -5606,7 +5071,13 @@ if isLast then
   parameter Modelica.Units.SI.Mass idealTank_TankcontentAltFuel = 2e14;
   parameter Modelica.Units.SI.Mass idealTank_TankcontentAltFuelStart = 2e14;
   /**GENERATOR FUEL CURVES **/
-  parameter Real BSFC_Curve_1[:, 2] = [80, 422.67; 160, 405.71; 240, 391.32; 320, 379.53; 400, 370.33; 480, 363.71; 560, 359.69; 640, 358.24; 720, 359.39; 800, 363.13];
+  //PM ExE BSFC [108, 223.750; 216, 211.973; 324, 206.08; 432, 197.25; 540, 190.38; 648, 183.51; 756, 180.57;  864, 177.62; 918,176.64; 972,178.607;  1026,180.57; 1080, 183.51]
+  //PM Fuel Consumption Ref [0, 0; 10,28.56; 20, 54.12; 30, 78.92; 40, 100.72; 50, 121.521; 60, 140.56; 70, 161.36; 80, 181.40; 85,191.67; 90,205.20; 95.218.98; 100,234.27]
+  //Fuel Cell BSFC [108, 175.07; 216, 74.40; 324, 53.14; 432, 50.44; 540, 52.21; 648, 55.11; 756, 58.35; 864, 59.52; 972, 61.36; 1080, 64.69]
+  //Fuel Cell Consumption [0, 0; 10,727.2; 20, 618.1; 30, 662.2; 40, 838.1; 50, 1084.4; 60, 1373.62; 70,1696.83; 80, 1978.021; 90, 2294.09; 100, 2687.52]
+  //Fuel Cell Horizon 30 BSFC [3.3,175.070028; 6.6,74.4047619; 9.9,53.1462585; 13.2,50.44390638; 16.5,52.213868; 19.8,55.11463845; 23.1,58.356676; 26.4,59.52380952; 29.7,61.36475209; 33,64.69979296]
+  //Fuel Cell Horizon 30 Fuel Consumption [0,0;10,22.22042663;20,18.88736264;30,20.23645997;40,25.60998324;50,33.13572393;60,41.97191697;70,51.84766214;80,60.43956044;90,70.09742834;100,82.11896799]
+  parameter Real BSFC_Curve_1[:, 2] = [3.3,175.070028; 6.6,74.4047619; 9.9,53.1462585; 13.2,50.44390638; 16.5,52.213868; 19.8,55.11463845; 23.1,58.356676; 26.4,59.52380952; 29.7,61.36475209; 33,64.69979296];
   parameter Real BSFC_Curve_2[:, 2] = [80, 422.68; 160, 405.71; 240, 391.32; 320, 379.53; 400, 370.33; 480, 363.71; 560, 359.69; 640, 358.25; 720, 359.40;800,363.14];
   parameter Real BSFC_Curve_3[:, 2] = [33, 727.27; 83, 521.21; 165, 484.85; 248, 456.57; 330, 439.39];
   parameter Real BSFC_Curve_4[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
@@ -5616,7 +5087,7 @@ if isLast then
   parameter Real BSFC_Curve_8[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_9[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_10[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
-  parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_1[:, 2] =[0, 0.00; 10, 42.69; 20, 81.96; 30, 118.58; 40, 153.35; 50, 187.03; 60, 220.43; 70, 254.33; 80, 289.49; 90, 326.72; 100, 366.80];
+  parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_1[:, 2] =[0,0;10,22.22042663;20,18.88736264;30,20.23645997;40,25.60998324;50,33.13572393;60,41.97191697;70,51.84766214;80,60.43956044;90,70.09742834;100,82.11896799];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_2[:, 2] =[0, 0.00; 10, 42.69; 20, 81.96; 30, 118.58; 40, 153.35; 50, 187.03; 60, 220.43; 70, 254.32; 80, 289.49; 90, 326.73; 100,366.80];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_3[:, 2] = [0, 0.00; 25, 107.10; 50, 213.50; 75, 323.03; 100, 438.38];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_4[:, 2] = [0, 0.00; 10, 16.74; 20, 31.87; 30, 46.45; 40, 60.68; 50, 74.66; 60, 88.44; 70, 102.06; 80, 115.54; 90, 128.90; 100, 142.16];
@@ -5648,7 +5119,7 @@ if isLast then
   Modelica.Blocks.Math.Gain gain1(k = 1000) annotation(
     Placement(transformation(origin = {160, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   // Part Controller
-  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "/home/ros1/Documents/sequential_batch_simulator/seq_batch_simulatior/src/assets/model_assets/2024-04_FC_Cardinal_buoy_maintenance Portside.txt", verboseRead = true, columns = 2:2) annotation(
+  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "/home/ros1/Documents/PM_Exe_Cleanest.txt", verboseRead = true, columns = 2:2) annotation(
     Placement(transformation(origin = {230, -276}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Sources.RealExpression time_expre2(y = time) annotation(
     Placement(transformation(origin = {306, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
@@ -6043,16 +5514,16 @@ if isLast then
     Placement(transformation(origin = {-170, -420}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression realExpressionHydroUse(
   y = (
-  (if noEvent(generator_Frho_1 == 1) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_2 == 1) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_3 == 1) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_4 == 1) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_5 == 1) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_6 == 1) and gen6_is_on then generator6.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_7 == 1) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_8 == 1) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_9 == 1) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_10 == 1) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
+  (if noEvent(generator_Frho_1 == 70.8) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_2 == 70.8) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_3 == 70.8) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_4 == 70.8) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_5 == 70.8) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_6 == 70.8) and gen6_is_on then generator6.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_7 == 70.8) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_8 == 70.8) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_9 == 70.8) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_10 == 70.8) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
     Placement(transformation(origin = {-170, -450}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression gen_energy1(y = generator1.P_out)  annotation(
     Placement(transformation(origin = {-10, -310}, extent = {{-10, -10}, {10, 10}})));

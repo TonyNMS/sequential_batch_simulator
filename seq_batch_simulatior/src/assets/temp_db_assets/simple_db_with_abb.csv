@@ -1,5 +1,5 @@
 Engine_Name ,Engine_P_max ,Engine_P_min,Cost,Emgine_Mass,Engine_Volume ,Engine_Fuel_Type,Engine_g_perkWh ,Engine Fuel Consumption Curve ,Engine Index  ,Retrofit Cost,Battery_Name,Battery_Capacity,Battery_Cost,Mass,Volume,Voltage,Current,Max_C_Rate,Battery Index,Battery Abb,BatteryCycleLimit
-PM Engine Wartsila 6L20,1080,108,50000,9300,11.06,Diesel,"[108, 244.31; 216, 234.06; 324, 225.34; 432, 218.14; 540, 212.47; 810, 204.97; 918, 204.64; 1080, 207.00]","[0, 0.00; 10, 31.19; 20, 59.76; 30, 86.30; 40, 111.39; 50, 135.62; 75, 196.25; 85, 222.05; 100, 264.26]",D1,0,Durapower 666 V,42.6,16123.2,445,0.439,666,384,1,B1,DP,1000
-Fictional Methanol PM,1080,108,50000,9300,11.06,Methanol,"[108, 521.77; 216, 499.88; 324, 481.25; 432, 465.88; 540, 453.77; 810, 437.75; 918, 437.05; 1080, 442.09]","[0, 0.00; 10, 71.15; 20, 136.33; 30, 196.88; 40, 254.11; 50, 309.39; 75, 447.70; 85, 506.58; 100, 602.84]",M1,10000,Corvus Blue Whale,43,13500,383,0.558,80,538,1,B2,CB,1000
+FCWave Ballard 200 x4,800,220,1800000,4000,7.84,FC,"[220, 226.68; 300, 231.84; 400, 224.00; 600, 233.96; 800, 269.96]","[28, 313.64; 38, 437.44; 50, 563.52; 75, 882.88; 100, 1358.32]",FC,0,Durapower 666 V,42.6,16123.2,445,0.439,666,384,1,B1,DP,1000
+,,,,,,,,,,,Corvus Blue Whale,43,13500,383,0.558,80,538,1,B2,CB,1000
 ,,,,,,,,,,,CTS 614 V Lifepo4 Battery,61.4,4500,614.5,0.2637,614,100,1,B3,LP,1000
 ,,,,,,,,,,,Shift PwrSwap 280 kWh,281.6,245000,3550,4.03,800,225,1,B4,SP,1000

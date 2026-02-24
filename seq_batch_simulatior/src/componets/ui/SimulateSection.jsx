@@ -33,13 +33,13 @@ const SimulateSection =()=>{
          */
         
         /*Check if components are loaded in list */
-        if (dieGenObjList.length === 0 ||methGenObjList.length === 0||batObjList.length === 0){
+        if (batObjList.length === 0 ||fcObjList.length ===0){
             alert ("No Generators  or Batterys Were found");
             console.log("Check Database");
             return;
         }
-        volLimit ? Number(volLimit): 60000 
-        weightLim ? Number(weightLim) : 60000
+        volLimit ? Number(volLimit): 600000 
+        weightLim ? Number(weightLim) : 600000
         taskVesselName[0] ? taskVesselName[0] : "PlaceHolderVessel" 
         taskVesselName[1] ? taskVesselName[1] : "PlaceHolderTask"
         // Build Preliminary combinations
@@ -51,7 +51,7 @@ const SimulateSection =()=>{
         //mark combination with spacing problems
         combinations= await markUnrealisticCombos({
             combos : combinations, vollimit: volLimit ? Number(volLimit): 60000, 
-            weighLimit:weightLim ? Number(weightLim) : 60000, 
+            weighLimit:weightLim ? Number(weightLim) : 600000, 
             numslots : egnine_slots_input.current? Number(egnine_slots_input.current.value) : 1});
         
         //remove IncapbleSystem

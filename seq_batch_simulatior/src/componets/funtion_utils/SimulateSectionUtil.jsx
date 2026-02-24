@@ -17,7 +17,7 @@ export async function buildCombinations(dieList, methList, fcList, batList,  POS
 
     // Combine all generators and fuel cells
     // const combinedList = [...dieList, ...methList, ...fcList];
-    const combinedList = [...dieList, ...methList];
+    const combinedList = [...dieList, ...methList, ...fcList];
     
     // map every engine with every kind ofupper and lower bound (optimal zone)
     const engineOptions =combinedList.flatMap(engine =>
@@ -150,7 +150,7 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
             //if there is a generator, in the slot
             
             if(config["config"][`slot ${i}`] != null){
-                temp_changed_parameter.modelica_parameters.push({param : "tolerance", value:"2.6e-6"})
+                temp_changed_parameter.modelica_parameters.push({param : "tolerance", value:"1e-06"})
                 // Engine On
                 temp_changed_parameter.modelica_parameters.push({param:`gen${i}_is_on`, value:"true"})
                 // Engine Power
@@ -173,9 +173,9 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
                 }else{
                     // Fuel using place holder until property of hydrogen are confirmed
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"45.9e6"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"846"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"846"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"120e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"70.8"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"70.8"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
                 }
