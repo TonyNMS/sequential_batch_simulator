@@ -12,6 +12,7 @@ const DataBaseLoader =()=>{
      *      
      * */
     const [useSimpleDatabasem , setUseSimpleDatabase] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
     const [diselGeneratorObjList, setDieselGeneratorObjList] = useContext(DieselEngienListContext);
     const [methnaolGeneratorObjList, setMethnaolGeneratorObjList] = useContext(MethanolEngineListContext);
     const [fuelCellObjList, setFuelCellObjList] = useContext(FuelCellListContext);
@@ -32,6 +33,10 @@ const DataBaseLoader =()=>{
          * Call the selected CSV 
          * Parse all of the Diesel,Methanol, Fuel Cell, and Battery 
          */
+        if (isLoading) {
+            return;
+        }
+        setIsLoading(true);
         // Select the proper URL
         const db_url = useSimpleDatabasem ? SimpleDatabaseUrl : FullDatabseUrl;
         // Read the CSV and populate the temp object containers
@@ -42,13 +47,14 @@ const DataBaseLoader =()=>{
         setMethnaolGeneratorObjList(tempRes[1]);
         setFuelCellObjList(tempRes[2]);
         setBatteryObjList(tempRes[3]);
+        setIsLoading(false);
     }
 
     return (
         <>
             <div>
-                <button onClick={handleChangeDatabase}> {useSimpleDatabasem ? "Simple Databse" : "Fuell Database"}</button>
-                <button onClick ={handleDatabaseSelection}> Confirm </button>
+                <button onClick={handleChangeDatabase} disabled={isLoading}> {useSimpleDatabasem ? "Simple Databse" : "Fuell Database"}</button>
+                <button onClick ={handleDatabaseSelection} disabled={isLoading}> {isLoading ? "Loading..." : "Confirm"} </button>
             </div>
         </>
     )

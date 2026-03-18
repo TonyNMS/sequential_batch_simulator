@@ -140,51 +140,72 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
      */
     const changed_parameters =[];
     for(const config of combos){
+        const baseConfig = config?.config ?? config;
         // Prepare empty container for modelica parameter of this config
         let temp_changed_parameter ={
-            instance : config,
+            instance : { config: baseConfig },
             modelica_parameters :[]
         };
         /*Engien parameters */
         for (let  i = 1; i <= numslots; i++){
             //if there is a generator, in the slot
             
-            if(config["config"][`slot ${i}`] != null){
-                temp_changed_parameter.modelica_parameters.push({param : "tolerance", value:"1e-06"})
+            if(baseConfig?.[`slot ${i}`] != null){
+                temp_changed_parameter.modelica_parameters.push({param : "tolerance", value:"6e-06"})
                 // Engine On
                 temp_changed_parameter.modelica_parameters.push({param:`gen${i}_is_on`, value:"true"})
                 // Engine Power
-                temp_changed_parameter.modelica_parameters.push({param:`generator_P_rat_${i}`, value:(config["config"][`slot ${i}`].engine_p_max * 1000).toString()})
-                temp_changed_parameter.modelica_parameters.push({param:`generator_P_idle_${i}`, value:(config["config"][`slot ${i}`].engine_p_min * 1000).toString()})
+                temp_changed_parameter.modelica_parameters.push({param:`generator_P_rat_${i}`, value:(baseConfig[`slot ${i}`].engine_p_max * 1000).toString()})
+                temp_changed_parameter.modelica_parameters.push({param:`generator_P_idle_${i}`, value:(baseConfig[`slot ${i}`].engine_p_min * 1000).toString()})
                 // check what types of generator it is 
-                if (config["config"][`slot ${i}`].engine_fuel_type === "Diesel"){
-                    // Fuel
+                if (baseConfig[`slot ${i}`].engine_fuel_type === "Diesel"){
+                    
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"45.9e6"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"846"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"846"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.86"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})  
-                }else if(config["config"][`slot ${i}`].engine_fuel_type === "Methanol"){
-                    // Fuel
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "Methanol"){
+                    
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"23e6"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"791"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"791"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
-                }else{
-                    // Fuel using place holder until property of hydrogen are confirmed
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX20"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"41.6e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"835.0"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"835.0"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX30"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"39.3e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"829.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"829.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX50"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"34.8e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"818.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"818.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else{                  
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"120e6"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"70.8"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"70.8"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"24"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"24"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
                 }
                 
                 // BSFC Upper and Lower Bound
                 temp_changed_parameter.modelica_parameters.push(
-                    {param :`mCtrl_user_defined_BSFC_percentage_${i}`, value: config["config"][`slot ${i}_upper`].toString()})
+                    {param :`mCtrl_user_defined_BSFC_percentage_${i}`, value: baseConfig[`slot ${i}_upper`].toString()})
                 temp_changed_parameter.modelica_parameters.push(
-                    {param :`mCtrl_user_defined_BSFC_percentage_${i}_lower`, value: config["config"][`slot ${i}_lower`].toString()})
+                    {param :`mCtrl_user_defined_BSFC_percentage_${i}_lower`, value: baseConfig[`slot ${i}_lower`].toString()})
                 
                 // Duty Cycle Path
                 temp_changed_parameter.modelica_parameters.push(
@@ -198,17 +219,17 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
         }
         
         /*Battery parameters */
-        if(config["config"]["battery_count"] > 0){  
+        if(baseConfig?.["battery_count"] > 0){  
             // if therei s a battery
             temp_changed_parameter.modelica_parameters.push(
                 {
                     param:"battery_P_max", 
-                    value:(config["config"]["battery"].battery_max_charge_power * config["config"]["battery_count"]).toString()
+                    value:(baseConfig["battery"].battery_max_charge_power * baseConfig["battery_count"]).toString()
                 })
             temp_changed_parameter.modelica_parameters.push(
                 {
                     param:"battery_Capacity", 
-                    value:(config["config"]["battery"].battery_capcity * 3600000 * config["config"]["battery_count"]).toString()
+                    value:(baseConfig["battery"].battery_capcity * 3600000 * baseConfig["battery_count"]).toString()
                 })
         }else{
             // if there is not a battery, the battery does not output power
@@ -301,7 +322,7 @@ function generateAllPowerTrains({engineOptions, numSlots, batteries,batteryCount
 }
 
 
-export const commitBatchSimulation = async ({moParams, startTime,endTime,modelName,numSlot, vesselName, taskName})=>{
+export const commitBatchSimulation = async ({moParams, startTime,endTime,modelName,numSlot, vesselName, taskName, methMassFraction})=>{
     /**
      * Inform Backed to start simulation
      * Need Model Name
@@ -321,7 +342,8 @@ export const commitBatchSimulation = async ({moParams, startTime,endTime,modelNa
                 list_of_config_combinations:moParams,
                 number_of_slots : numSlot,
                 vesselName : vesselName,
-                taskName : taskName
+                taskName : taskName,
+                methMassFraction : methMassFraction
             }),
 
         }

@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useRef, useState } from "react";
 import { buildCombinations, commitBatchSimulation, markUnrealisticCombos, modelicaParameterMapping, filterIncapbleSystem} from "../funtion_utils/SimulateSectionUtil.jsx";
 import { BatteryListContext, DieselEngienListContext, FuelCellListContext, MethanolEngineListContext, DutyCycleContext, VolumeLimitContext, WeightLimitContext, VesselNameTaskName } from "../../App";
-import { dutyCycleInfo, singleIteration } from "../funtion_utils/TestingConfigUnits.jsx";
 
-const  POSSIBLE_BATTERY_COUNT = [0,5,10,15,20]
+const  POSSIBLE_BATTERY_COUNT = [0,1,2,4,5,6,8,10]
 const  POSSIBLE_OPTIMAL_LOWER_PERCENTAGE = [0.05]
 const  POSSBILE_OPTIMAL_UPPER_PERCENTAGE = [0.001]
 const SimulateSection =()=>{
@@ -13,6 +12,8 @@ const SimulateSection =()=>{
      * Then Update the Result Context
      */
     const  [simulationStatus, setSimulationStatus] = useState();
+    const  [isPowerGuardEnabled, setIsPowerGuardEnabled] = useState(true);
+    const  [methanolMassPercent, setMethanolMassPercent] = useState(0);
     const  egnine_slots_input = useRef(null);
     const  [dieGenObjList, setDiegenObjList] = useContext(DieselEngienListContext);
     const  [methGenObjList, setMethGenObjList] = useContext(MethanolEngineListContext);
@@ -22,6 +23,9 @@ const SimulateSection =()=>{
     const  [volLimit, setVolumnLimit] = useContext(VolumeLimitContext);
     const  [weightLim, setWeightLimit] = useContext(WeightLimitContext);
     const  [taskVesselName, setTaskName] = useContext(VesselNameTaskName);
+    const methanolPercentNumber = Number(methanolMassPercent);
+    const isMethanolPercentValid = Number.isFinite(methanolPercentNumber) && methanolPercentNumber >= 0 && methanolPercentNumber <= 100;
+
     async function handleSimulation () {
         /**
          * @call buildCombinations()
@@ -31,13 +35,13 @@ const SimulateSection =()=>{
          * @call modelicaparameterMapping()
          * @call commitBatchSimulation()
          */
-        
         /*Check if components are loaded in list */
-        if (batObjList.length === 0 ||fcObjList.length ===0){
+        /*
+        if (batObjList.length === 0 ||dieGenObjList.length ===0){
             alert ("No Generators  or Batterys Were found");
             console.log("Check Database");
             return;
-        }
+        }*/
         volLimit ? Number(volLimit): 600000 
         weightLim ? Number(weightLim) : 600000
         taskVesselName[0] ? taskVesselName[0] : "PlaceHolderVessel" 
@@ -54,11 +58,13 @@ const SimulateSection =()=>{
             weighLimit:weightLim ? Number(weightLim) : 600000, 
             numslots : egnine_slots_input.current? Number(egnine_slots_input.current.value) : 1});
         
-        //remove IncapbleSystem
-        combinations= await filterIncapbleSystem({
-            combos: combinations, 
-            numslots :egnine_slots_input.current? Number(egnine_slots_input.current.value) : 1, 
-            max_power_required : dutyCycleObject.maxPower });
+        //remove IncapbleSystem (optional guard)
+        if (isPowerGuardEnabled) {
+            combinations= await filterIncapbleSystem({
+                combos: combinations, 
+                numslots :egnine_slots_input.current? Number(egnine_slots_input.current.value) : 1, 
+                max_power_required : dutyCycleObject.maxPower });
+        }
         console.log(combinations)
         const mappedParameters = await modelicaParameterMapping(
             combinations, 
@@ -69,6 +75,8 @@ const SimulateSection =()=>{
 
         //At this point all prepation has completed
         // Prepare to talk to the backend
+        const normalizedMethanolPercent = Math.min(100, Math.max(0, Number(methanolMassPercent) || 0));
+        const methMassFraction = normalizedMethanolPercent / 100;
         await commitBatchSimulation({ 
             moParams:mappedParameters, 
             startTime: dutyCycleObject.startTime.toString(), 
@@ -76,17 +84,10 @@ const SimulateSection =()=>{
             modelName:"SEACHANGE_TEST_85MCR_batch", 
             numSlot: egnine_slots_input.current? Number(egnine_slots_input.current.value) : 1,
             vesselName: taskVesselName[0] ? taskVesselName[0] : "PlaceHolderVessel",
-            taskName:  taskVesselName[1] ? taskVesselName[1] : "PlaceHolderTask"});
+            taskName:  taskVesselName[1] ? taskVesselName[1] : "PlaceHolderTask",
+            methMassFraction: methMassFraction});
     }
 
-    // A separate debug simulation
-    async function handleDebug(){
-        const debug= singleIteration
-        // Debugging case has 1 diesel 1 methanol and no battery
-        await commitBatchSimulation({ moParams:debug, startTime: dutyCycleInfo.startTime.toString(), 
-            endTime:dutyCycleInfo.endTime.toString(), modelName:"SEACHANGE_TEST_85MCR_batch", numSlot: egnine_slots_input.current? Number(egnine_slots_input.current.value) : 1});
-
-    }
     return(
     <>  
         <div>
@@ -98,8 +99,31 @@ const SimulateSection =()=>{
                 id="engine_slots_input"></input>
         </div>
         <div>
-            <button onClick={handleSimulation}> Commit Simulation </button>
-            <button onClick ={handleDebug}>Debug Run</button>
+            <button onClick={handleSimulation} disabled={!isMethanolPercentValid}> Commit Simulation </button>
+        </div>
+        <div>
+            <label> Methanol Mass Percentage (0-100) </label>
+            <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={methanolMassPercent}
+                onChange={(event) => setMethanolMassPercent(event.target.value)}
+            />
+            {!isMethanolPercentValid && (
+                <div>Please enter a value between 0 and 100.</div>
+            )}
+        </div>
+        <div>
+            <label>
+                <input
+                    type="checkbox"
+                    checked={isPowerGuardEnabled}
+                    onChange={(event) => setIsPowerGuardEnabled(event.target.checked)}
+                />
+                Enable max power guard
+            </label>
         </div>
     </>
     )

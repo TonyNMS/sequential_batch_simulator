@@ -62,6 +62,11 @@ def simulate_batch():
     number_of_slots =data["number_of_slots"]
     vessel_name = data["vesselName"]
     task_name =  data["taskName"]
+    try:
+        meth_mass_fraction = float(data.get("methMassFraction", 0) or 0)
+    except (TypeError, ValueError):
+        meth_mass_fraction = 0.0
+    meth_mass_fraction = max(0.0, min(1.0, meth_mass_fraction))
 
     # Log General Batch Simulation Info
     print(f"[simulate_batch] model={model_name}, combos={len(combos)}, "
@@ -168,7 +173,7 @@ def simulate_batch():
                     f'startTime={start_time}, '
                     f'stopTime={stop_time}, '
                     f'numberOfIntervals=32643, '
-                    f'tolerance=2.6e-6, '
+                    f'tolerance=1e-6, '
                     f'simflags="{simflags}")'  
                 )
                 # print(f"Simulation result: {sim_result}")  # Disabled verbose output
@@ -254,7 +259,8 @@ def simulate_batch():
                     engine_mass,
                     engine_volume,
                     engine_cost,
-                    battery_specs
+                    battery_specs,
+                    meth_mass_fraction
                 )
                 temp_result_collection["batch_sim_res_collection"].append(simResult)
 
@@ -383,7 +389,7 @@ def handle_upload_dutycycle():
 
 def process_simmultion_result(index, simName, sequence_description, total_cost, 
                               max_powertrain_gen ,model_name, optZonePairs, batName, batCount,
-                              engineMass, engineVolume, engineCost, batteryInfo):
+                              engineMass, engineVolume, engineCost, batteryInfo, meth_mass_fraction=0.0):
     processed_simulation_result = {}
     try:
         # Construct the path to the CSV result file
@@ -434,9 +440,24 @@ def process_simmultion_result(index, simName, sequence_description, total_cost,
         processed_simulation_result['Gen2 Energy (kWh)'] = [p for p in df['realValue_gen_energy2.showNumber'].tolist()]
         processed_simulation_result['Gen3 Energy (kWh)'] = [p for p in df['realValue_gen_energy3.showNumber'].tolist()]
         # Extract fuel consumption values
-        diesel_kg = float(df['realTotalDieselUsage.showNumber'].iloc[-1])
-        methanol_kg = float(df['realTotalAltFuelUsage.showNumber'].iloc[-1])
-        hydrogen_kg = float(df['realTotalHydroUsage.showNumber'].iloc[-1])
+        try:
+            meth_mass_fraction = float(meth_mass_fraction or 0)
+        except (TypeError, ValueError):
+            meth_mass_fraction = 0.0
+        meth_mass_fraction = max(0.0, min(1.0, meth_mass_fraction))
+
+        if meth_mass_fraction > 0:
+            mixture = float(df['realTotalDieselUsage.showNumber'].iloc[-1])
+            diesel_kg = mixture * (1 - meth_mass_fraction)
+            methanol_kg = float(df['realTotalAltFuelUsage.showNumber'].iloc[-1]) + (mixture * meth_mass_fraction)
+            hydrogen_kg = float(df['realTotalHydroUsage.showNumber'].iloc[-1])
+            processed_simulation_result['diesel_usage (Ton)'] = diesel_kg / 1000
+            processed_simulation_result['meth_usage (Ton)'] = methanol_kg / 1000
+            processed_simulation_result['hydrogen_usage (Ton)'] = hydrogen_kg / 1000
+        else:
+            diesel_kg = float(df['realTotalDieselUsage.showNumber'].iloc[-1])
+            methanol_kg = float(df['realTotalAltFuelUsage.showNumber'].iloc[-1])
+            hydrogen_kg = float(df['realTotalHydroUsage.showNumber'].iloc[-1])
         
         processed_simulation_result['diesel_usage (Ton)'] = diesel_kg / 1000
         processed_simulation_result['meth_usage (Ton)'] = methanol_kg / 1000

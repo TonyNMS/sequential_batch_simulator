@@ -56,7 +56,7 @@ function determineIfEngineHasFuel
   input Real fuelUsageByType[:];
   output Boolean has_fuel;
 algorithm 
-  if generatorsFuelType[currentGenIdx] == 846 then  // if the generator is a diesel generator
+  if generatorsFuelType[currentGenIdx] < 860 and generatorsFuelType[currentGenIdx] > 800 then  // if the generator is a diesel generator
      has_fuel := if noEvent(dieselLimit >= fuelUsageByType[1] ) then true else false;
   elseif generatorsFuelType[currentGenIdx] == 791 then // if the generator is a methanol generation
       has_fuel := if noEvent(altFuelLimit>= fuelUsageByType[2] ) then true else false;
@@ -4809,11 +4809,12 @@ end IndividualControllerCore12_85MCR;
   parameter Real mCtrl_fuelCellPercentage = 1 - mCtrl_dieselGenPercentage;
   /*FUEL PROPERTIES FOR GENERATORS */
   //fuel parameter Generator_Fuel GEN 1
-  //45.9e6 for diesel LHV, 846 for diesel  density , 0.233kg/mol for molar mass
+  //45.9e6  for diesel LHV, 846 for diesel   density , 0.233kg/mol for molar mass
+  //23 e6 for methanol LHV, 791 for methanol density , 0.032kg/mol for molar mass
   //120e6 for hydrogen LHV @ 350 bar, 26.1 for hydrogen density 2.4e-3 kg/mol for molar mass
-  parameter Modelica.Units.SI.SpecificEnergy generator_FLHV_1 =  120e6"Fuel LHV";
-  parameter Modelica.Units.SI.Density generator_Frho_1 = 26.1 "Fuel Density KG/M^3";
-  parameter Real generator_Frho_liq_1 = 26.1 "Fuel Liquid Density";
+  parameter Modelica.Units.SI.SpecificEnergy generator_FLHV_1 =  45.9e6"Fuel LHV";
+  parameter Modelica.Units.SI.Density generator_Frho_1 = 846 "Fuel Density KG/M^3";
+  parameter Real generator_Frho_liq_1 = 846 "Fuel Liquid Density";
   parameter Real generator_FcarbonContent_1 = 0 "Fuel Carbon Content";
   parameter Modelica.Units.SI.MolarMass generator_MolarMass_1 = 2.4e-3 "Fuel MolarMass";
   parameter Real generator_M_Flow_Fidle_1 = 0.00008*((0.08451*800));
@@ -4925,7 +4926,7 @@ end IndividualControllerCore12_85MCR;
   parameter Real generator_Eta_El_Const = 0.40;
   parameter Boolean generator_FuelConsumptionIsVolumetric = true;
   /*ENGINE PARAMETER*/
-  parameter Real generator_P_rat_1 = 33000;
+  parameter Real generator_P_rat_1 = 1080000;
   parameter Real generator_P_rat_2 = 800000;
   parameter Real generator_P_rat_3 = 330000;
   parameter Real generator_P_rat_4 = 800000;
@@ -4935,7 +4936,7 @@ end IndividualControllerCore12_85MCR;
   parameter Real generator_P_rat_8 = 800000;
   parameter Real generator_P_rat_9 = 800000;
   parameter Real generator_P_rat_10 = 800000;
-  parameter Real generator_P_idle_1 = 3300;
+  parameter Real generator_P_idle_1 = 108000;
   parameter Real generator_P_idle_2 = 80000;
   parameter Real generator_P_idle_3 = 30000;
   parameter Real generator_P_idle_4 = 100000;
@@ -5061,8 +5062,8 @@ end IndividualControllerCore12_85MCR;
   parameter Real battery_Eff_Charge = 0.985;
   parameter Boolean battery_Set_SOC_Final_Start = true;
   // Battery Pmax = 0.1
-  parameter Real battery_Capacity = 12.698 * 3.6e6;
-  parameter Real battery_P_max =74400;
+  parameter Real battery_Capacity = 61.4 * 10 * 3.6e6;
+  parameter Real battery_P_max = 61400*10;
   parameter Real battery_SOC_start = 0.90;
   parameter Modelica.Units.SI.Power electricalGrid_Power_Nominal = P_nominal;
   parameter Real electricalGrid_V_ref = 1000;
@@ -5072,13 +5073,16 @@ end IndividualControllerCore12_85MCR;
   parameter Modelica.Units.SI.Mass idealTank_TankcontentAltFuelStart = 2e14;
   /**GENERATOR FUEL CURVES **/
   //PM ExE BSFC [108, 223.750; 216, 211.973; 324, 206.08; 432, 197.25; 540, 190.38; 648, 183.51; 756, 180.57;  864, 177.62; 918,176.64; 972,178.607;  1026,180.57; 1080, 183.51]
-  //PM Fuel Consumption Ref [0, 0; 10,28.56; 20, 54.12; 30, 78.92; 40, 100.72; 50, 121.521; 60, 140.56; 70, 161.36; 80, 181.40; 85,191.67; 90,205.20; 95.218.98; 100,234.27]
+  //PM Fuel Consumption Ref [0, 0; 10,28.56; 20, 54.12; 30, 78.92; 40, 100.72; 50, 121.521; 60, 140.56; 70, 161.36; 80, 181.40; 85,191.67; 90,205.20; 95,218.98; 100,234.27]
   //Fuel Cell BSFC [108, 175.07; 216, 74.40; 324, 53.14; 432, 50.44; 540, 52.21; 648, 55.11; 756, 58.35; 864, 59.52; 972, 61.36; 1080, 64.69]
   //Fuel Cell Consumption [0, 0; 10,727.2; 20, 618.1; 30, 662.2; 40, 838.1; 50, 1084.4; 60, 1373.62; 70,1696.83; 80, 1978.021; 90, 2294.09; 100, 2687.52]
   //Fuel Cell Horizon 30 BSFC [3.3,175.070028; 6.6,74.4047619; 9.9,53.1462585; 13.2,50.44390638; 16.5,52.213868; 19.8,55.11463845; 23.1,58.356676; 26.4,59.52380952; 29.7,61.36475209; 33,64.69979296]
   //Fuel Cell Horizon 30 Fuel Consumption [0,0;10,22.22042663;20,18.88736264;30,20.23645997;40,25.60998324;50,33.13572393;60,41.97191697;70,51.84766214;80,60.43956044;90,70.09742834;100,82.11896799]
-  parameter Real BSFC_Curve_1[:, 2] = [3.3,175.070028; 6.6,74.4047619; 9.9,53.1462585; 13.2,50.44390638; 16.5,52.213868; 19.8,55.11463845; 23.1,58.356676; 26.4,59.52380952; 29.7,61.36475209; 33,64.69979296];
-  parameter Real BSFC_Curve_2[:, 2] = [80, 422.68; 160, 405.71; 240, 391.32; 320, 379.53; 400, 370.33; 480, 363.71; 560, 359.69; 640, 358.25; 720, 359.40;800,363.14];
+  
+  //PM Methanol Fuel BSFC  [108, 521.77; 216, 499.88; 324, 481.25; 432, 465.88; 540, 453.77; 810, 437.75; 918, 437.05; 1080, 442.09]
+  //PM Methanol [0, 0.00; 10, 71.15; 20, 136.33; 30, 196.88; 40, 254.11; 50, 309.39; 75, 447.70; 85, 506.58; 100, 602.84]
+  parameter Real BSFC_Curve_1[:, 2] = [108, 203.54; 216, 192.83; 324, 187.47; 432, 179.44; 540, 173.19; 648, 166.94; 756, 164.26; 864, 161.58; 918, 160.69; 972, 162.47; 1026, 164.26; 1080, 166.94];
+  parameter Real BSFC_Curve_2[:, 2] = [0, 0; 10,28.56; 20, 54.12; 30, 78.92; 40, 100.72; 50, 121.521; 60, 140.56; 70, 161.36; 80, 181.40; 85,191.67; 90,205.20; 95,218.98; 100,234.27];
   parameter Real BSFC_Curve_3[:, 2] = [33, 727.27; 83, 521.21; 165, 484.85; 248, 456.57; 330, 439.39];
   parameter Real BSFC_Curve_4[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_5[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
@@ -5087,7 +5091,7 @@ end IndividualControllerCore12_85MCR;
   parameter Real BSFC_Curve_8[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_9[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
   parameter Real BSFC_Curve_10[:, 2] = [80, 180.80; 160, 172.11; 240, 167.23; 320, 163.85; 400, 161.27; 480, 159.20; 560, 157.47; 640, 155.98; 720, 154.68; 800, 153.53];
-  parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_1[:, 2] =[0,0;10,22.22042663;20,18.88736264;30,20.23645997;40,25.60998324;50,33.13572393;60,41.97191697;70,51.84766214;80,60.43956044;90,70.09742834;100,82.11896799];
+  parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_1[:, 2] =[0, 0.00; 10, 26.33; 20, 49.88; 30, 72.74; 40, 92.83; 50, 112.00; 60, 129.55; 70, 148.72; 80, 167.19; 85, 176.66; 90, 189.13];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_2[:, 2] =[0, 0.00; 10, 42.69; 20, 81.96; 30, 118.58; 40, 153.35; 50, 187.03; 60, 220.43; 70, 254.32; 80, 289.49; 90, 326.73; 100,366.80];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_3[:, 2] = [0, 0.00; 25, 107.10; 50, 213.50; 75, 323.03; 100, 438.38];
   parameter Real Engine_Fuel_Consumption_Look_Up_Table_Diesle_4[:, 2] = [0, 0.00; 10, 16.74; 20, 31.87; 30, 46.45; 40, 60.68; 50, 74.66; 60, 88.44; 70, 102.06; 80, 115.54; 90, 128.90; 100, 142.16];
@@ -5119,8 +5123,8 @@ end IndividualControllerCore12_85MCR;
   Modelica.Blocks.Math.Gain gain1(k = 1000) annotation(
     Placement(transformation(origin = {160, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   // Part Controller
-  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "/home/ros1/Documents/PM_Exe_Cleanest.txt", verboseRead = true, columns = 2:2) annotation(
-    Placement(transformation(origin = {230, -276}, extent = {{10, -10}, {-10, 10}})));
+  Modelica.Blocks.Tables.CombiTable1Ds combiTable1Ds(tableOnFile = true, tableName = "tab1", fileName = "/home/ros1/Documents/dutycycles/PM_Exe_20Percent_Slow.txt", verboseRead = true, columns = 2:2) annotation(
+    Placement(transformation(origin = {232, -274}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Sources.RealExpression time_expre2(y = time) annotation(
     Placement(transformation(origin = {306, -276}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   SEACHANGE_TEST_85MCR_batch.IndividualEngineController individualEngineController(
@@ -5487,16 +5491,16 @@ end IndividualControllerCore12_85MCR;
     Placement(transformation(origin = {-70, -450}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression realExpressionDieUse(
   y = (
-    (if noEvent(generator_Frho_1 == 846) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_2 == 846) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_3 == 846) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_4 == 846) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_5 == 846) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_6 == 846) and gen6_is_on  then generator6.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_7 == 846) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_8 == 846) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_9 == 846) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
-    (if noEvent(generator_Frho_10 == 846) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
+    (if noEvent(generator_Frho_1 < 890 ) and noEvent(generator_Frho_1 > 810) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_2 < 890 ) and noEvent(generator_Frho_2 > 810) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_3 < 890 ) and noEvent(generator_Frho_3 > 810) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_4 < 890 ) and noEvent(generator_Frho_4 > 810) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_5 < 890 ) and noEvent(generator_Frho_5 > 810) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_6 < 890 ) and noEvent(generator_Frho_6 > 810) and gen6_is_on  then generator6.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_7 < 890 ) and noEvent(generator_Frho_7 > 810) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_8 < 890 ) and noEvent(generator_Frho_8 > 810) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_9 < 890 ) and noEvent(generator_Frho_9 > 810) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
+    (if noEvent(generator_Frho_10 < 890 ) and noEvent(generator_Frho_10 > 810) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
     Placement(transformation(origin = {-170, -390}, extent = {{-10, -10}, {10, 10}})));
   
   Modelica.Blocks.Sources.RealExpression realExpressionMethUse(
@@ -5514,16 +5518,16 @@ end IndividualControllerCore12_85MCR;
     Placement(transformation(origin = {-170, -420}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression realExpressionHydroUse(
   y = (
-  (if noEvent(generator_Frho_1 == 70.8) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_2 == 70.8) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_3 == 70.8) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_4 == 70.8) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_5 == 70.8) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_6 == 70.8) and gen6_is_on then generator6.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_7 == 70.8) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_8 == 70.8) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_9 == 70.8) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
-  (if noEvent(generator_Frho_10 == 70.8) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
+  (if noEvent(generator_Frho_1 == 24) and gen1_is_on then generator1.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_2 == 24) and gen2_is_on then generator2.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_3 == 24) and gen3_is_on then generator3.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_4 == 24) and gen4_is_on then generator4.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_5 == 24) and gen5_is_on then generator5.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_6 == 24) and gen6_is_on then generator6.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_7 == 24) and gen7_is_on then generator7.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_8 == 24) and gen8_is_on then generator8.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_9 == 24) and gen9_is_on then generator9.outlet_fuel.m_flow else 0) + 
+  (if noEvent(generator_Frho_10 == 24) and gen10_is_on then generator10.outlet_fuel.m_flow else 0)))  annotation(
     Placement(transformation(origin = {-170, -450}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Sources.RealExpression gen_energy1(y = generator1.P_out)  annotation(
     Placement(transformation(origin = {-10, -310}, extent = {{-10, -10}, {10, 10}})));
@@ -5668,9 +5672,9 @@ equation
   connect(gain1.y, electricLoad.P) annotation(
     Line(points = {{149, -276}, {7.5, -276}, {7.5, -201}, {178, -201}}, color = {0, 0, 127}));
   connect(time_expre2.y, combiTable1Ds.u) annotation(
-    Line(points = {{295, -276}, {242, -276}}, color = {0, 0, 127}));
+    Line(points = {{295, -276}, {268.5, -276}, {268.5, -274}, {244, -274}}, color = {0, 0, 127}));
   connect(combiTable1Ds.y[1], gain1.u) annotation(
-    Line(points = {{219, -276}, {171, -276}}, color = {0, 0, 127}));
+    Line(points = {{221, -274}, {195, -274}, {195, -276}, {171, -276}}, color = {0, 0, 127}));
   connect(bsfc_table_gen1.pwr_higher_band, gainDieselUpperBound1.u) annotation(
     Line(points = {{-503, 270}, {-490, 270}, {-490, 290}, {-473, 290}}, color = {0, 0, 127}));
   connect(bsfc_table_gen2.pwr_higher_band, gainDieselUpperBound2.u) annotation(
