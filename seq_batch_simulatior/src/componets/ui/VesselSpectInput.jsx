@@ -24,22 +24,16 @@ const VesselSpectIput =()=>{
     const hydroTankVolLimRef = useRef(null);
 
     function handleConfirmInput() {
-      const vesselName = vesselNameRef.current?.value.trim();
-      const taskName = taskNameRef.current?.value.trim();
-      const weightLimit = weightLimitRef.current?.value;
-      const volumeLimit = volumeLimitRef.current?.value;
-      const dieTankVol = dieTankVolRef.current? dieTankVolRef.current.value : "230236"
-      const methTankVol = methTankVolRef.current? methTankVolRef.current.value : "230236"
-      const hydroTankVol = hydroTankVolRef.current? hydroTankVolRef.current.value : "230236"
-      const dieTankVolLim = dieTankVolLimRef.current? dieTankVolLimRef.current.value : "0.85"
-      const methTankVolLim = methTankVolLimRef.current? methTankVolLimRef.current.value : "0.85"
-      const hydroTankVolLim = hydroTankVolLimRef.current? hydroTankVolLimRef.current.value : "0.85"
-      // Basic validation
-      if (!vesselName || !taskName || !weightLimit || !volumeLimit) {
-        alert("Please fill in all fields before confirming.")
-        console.warn("Please fill in all fields before confirming.");
-        return;
-      }
+      const vesselName = vesselNameRef.current?.value?.trim() || "DefaultVessel";
+      const taskName = taskNameRef.current?.value?.trim() || "DefaultTask";
+      const weightLimit = weightLimitRef.current?.value || "600000";
+      const volumeLimit = volumeLimitRef.current?.value || "600000";
+      const dieTankVol = dieTankVolRef.current?.value || "230236";
+      const methTankVol = methTankVolRef.current?.value || "230236";
+      const hydroTankVol = hydroTankVolRef.current?.value || "230236";
+      const dieTankVolLim = dieTankVolLimRef.current?.value || "0.85";
+      const methTankVolLim = methTankVolLimRef.current?.value || "0.85";
+      const hydroTankVolLim = hydroTankVolLimRef.current?.value || "0.85";
 
       // Update contexts
       setVesselNameTestNameContext([vesselName, taskName]);
@@ -60,6 +54,7 @@ const VesselSpectIput =()=>{
               name="vessel_name"
               ref={vesselNameRef}
               placeholder="Vessel name"
+              defaultValue="DefaultVessel"
             />
             <p>Input Task Name</p>
             <input
@@ -67,6 +62,7 @@ const VesselSpectIput =()=>{
               name="task_name"
               ref={taskNameRef}
               placeholder="Task name"
+              defaultValue="DefaultTask"
             />
           </>
         </div>
@@ -75,18 +71,18 @@ const VesselSpectIput =()=>{
           <>
             <p>Confirm Diesel Fuel Mass </p>
             <div>
-               <input type="number" name="diesel_mass" ref={dieTankVolRef}  placeholder="Diesel Mass (Ton)"/>
-               <input type="number" name="avalible_tank_percetage" ref={dieTankVolLimRef} placeholder="Diesel Tank Avalible %"/>
+               <input type="number" name="diesel_mass" ref={dieTankVolRef}  placeholder="Diesel Mass (Ton)" defaultValue="230236"/>
+               <input type="number" name="avalible_tank_percetage" ref={dieTankVolLimRef} placeholder="Diesel Tank Avalible %" defaultValue="0.85"/>
             </div>
             <p>Confirm Alterntive Fuel Mass</p>
             <div>
-                <input type="number" name="alt_fuel_mass" ref={methTankVolRef} placeholder="AltFuel Mass"/>
-                <input type="number" name="avalible_tank_percetage" ref={methTankVolLimRef} placeholder="Altfuel Tank Avalible %"/>
+                <input type="number" name="alt_fuel_mass" ref={methTankVolRef} placeholder="AltFuel Mass" defaultValue="230236"/>
+                <input type="number" name="avalible_tank_percetage" ref={methTankVolLimRef} placeholder="Altfuel Tank Avalible %" defaultValue="0.85"/>
             </div>
             <p>Confirm Hydrogen Fuel Tank Mass</p>
               <div>
-                <input type="number" name="hydro_fuel_mass" ref={hydroTankVolRef} placeholder="Hydrogen Mass"/>
-                <input type="number" name="hydro_tank_percetage" ref = {hydroTankVolLimRef} placeholder="Hydrogen Tank Avalible %"/>
+                <input type="number" name="hydro_fuel_mass" ref={hydroTankVolRef} placeholder="Hydrogen Mass" defaultValue="230236"/>
+                <input type="number" name="hydro_tank_percetage" ref = {hydroTankVolLimRef} placeholder="Hydrogen Tank Avalible %" defaultValue="0.85"/>
               </div>
 
             <p>Confirm the Weight Limit on the vessel</p>
@@ -95,6 +91,7 @@ const VesselSpectIput =()=>{
               name="weight_limit"
               ref={weightLimitRef}
               placeholder="Weight limit"
+              defaultValue="600000"
             />
             <p>Confirm the Volume Limit on the vessel</p>
             <input
@@ -102,6 +99,7 @@ const VesselSpectIput =()=>{
               name="volume_limit"
               ref={volumeLimitRef}
               placeholder="Volume limit"
+              defaultValue="600000"
             />
             <button onClick={handleConfirmInput}>Confirm</button>
           </>

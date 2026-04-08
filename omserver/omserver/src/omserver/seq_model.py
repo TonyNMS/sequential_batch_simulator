@@ -172,8 +172,8 @@ def simulate_batch():
                     f'outputFormat="csv", '
                     f'startTime={start_time}, '
                     f'stopTime={stop_time}, '
-                    f'numberOfIntervals=32643, '
-                    f'tolerance=1e-6, '
+                    f'numberOfIntervals=500, '
+                    f'tolerance=4e-6, '
                     f'simflags="{simflags}")'  
                 )
                 # print(f"Simulation result: {sim_result}")  # Disabled verbose output

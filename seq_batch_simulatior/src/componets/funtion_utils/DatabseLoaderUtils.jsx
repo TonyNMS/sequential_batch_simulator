@@ -40,7 +40,9 @@ const readCSV = async (path, options = {}) => {
 
             const name = row[0]?.trim();
             const fuel = row[6]?.trim();
-            if (name && fuel && (fuel === "Diesel" || fuel === "Methanol" || fuel === "FC" || fuel === "MIX20"|| fuel === "MIX30"|| fuel === "MIX50")) {
+            if (name && fuel && (fuel === "Diesel" || fuel === "Methanol" || fuel === "FC" 
+              || fuel === "MIX20"|| fuel === "MIX30"|| fuel === "MIX40" || fuel === "MIX50"|| fuel === "MIX60"
+              || fuel === "MIX5" || fuel === "MIX70"|| fuel === "MIX80"|| fuel === "MIX90"|| fuel === "MIX97")) {
                 const engineObj = {
                     engine_name: name,
                     engine_p_max: Number(row[1]),
@@ -54,7 +56,8 @@ const readCSV = async (path, options = {}) => {
                     engine_db_index: row[9]?.toString() ?? "default_eng_idx",
                     engine_retrofit_cost: Number(row[10])
                 };
-                if (fuel === "Diesel" || fuel === "MIX20"|| fuel === "MIX30"|| fuel === "MIX50") {
+                if (fuel === "Diesel" || fuel === "MIX20"|| fuel === "MIX30"|| fuel === "MIX40" || fuel === "MIX50"|| fuel === "MIX60"
+                  || fuel === "MIX5"|| fuel === "MIX70"|| fuel === "MIX80"|| fuel === "MIX90"|| fuel === "MIX97") {
                     temp_die_eng_container.push(engineObj);
                 }
                 if (fuel === "Methanol") {

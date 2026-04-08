@@ -174,23 +174,76 @@ export async function modelicaParameterMapping(combos, numslots, dutyCyclePath){
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
                 }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX20"){
                     
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"41.6e6"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"835.0"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"835.0"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"37.98e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"834.6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"834.6"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                
                 }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX30"){
                     
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"39.3e6"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"829.5"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"829.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"35.72e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"829.04"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"829.04"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX40"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"33.46e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"823.6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"834.6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                
                 }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX50"){
                     
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"34.8e6"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"818.5"})
-                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"818.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"31.2e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"818.11"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"818.11"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX60"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"28.9e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"812.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"812.5"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX70"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"26.68e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"807.46"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"807.46"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX80"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"24.42e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"802.24"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"802.24"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX90"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"21.16e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"797.08"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"797.08"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX97"){
+                    
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"20.58e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"793.52"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"793.52"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
+                }else if(baseConfig[`slot ${i}`].engine_fuel_type === "MIX5"){
+ 
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_FLHV_${i}`, value:"41.3e6"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_${i}`, value:"843.1"})
+                    temp_changed_parameter.modelica_parameters.push({param : `generator_Frho_liq_${i}`, value:"843.1"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_FcarbonContent_${i}`, value:"0.34"})
                     temp_changed_parameter.modelica_parameters.push({param : `generator_MolarMass_${i}`, value:"0.223"})
                 }else{                  
