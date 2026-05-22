@@ -472,8 +472,11 @@ def process_simmultion_result(index, simName, sequence_description, total_cost,
         try: 
             temp_emission_res = calculate_eu_fuel_compliance(diesel_kg, methanol_kg)
             total_emisstion = temp_emission_res.get("emission").get("total_co2")
+            total_emission_eqv = temp_emission_res.get("total_tco2eq")
             penalty = temp_emission_res.get("emission").get("penalty")
-            print(f" CO2: {total_emisstion:.2f} tons | Penalty: €{penalty:.2f}")
+            comlpiance_balance_tco2eq = temp_emission_res.get("emission").get("compliance_results").get("compliance_balance_tco2eq") 
+            print(f" CO2: {total_emisstion:.2f} tons | Penalty: €{penalty:.2f} | Compliance Balance: {comlpiance_balance_tco2eq}")
+            print(f" CO2_Eqv: {total_emission_eqv:.2f} tons | Penalty: €{penalty:.2f}")
         except Exception as e:
             print(f"  Emission calculation error: {e}")
         processed_simulation_result['CO2_emission (Ton)'] = total_emisstion
@@ -563,7 +566,7 @@ def calculate_eu_fuel_compliance(dieselConsumption, methanolConsumption):
             fuel_data_entry = {
                 'fuel_type': emission_fuel_type,
                 'fuel_consumption_within_eu': consumption_tonnes,
-                'fuel_consumption_in_out_eu': 0.0,  # All within EU
+                'fuel_consumption_in_out_eu': 0.0,  
                 'is_biofuel': False,
                 'biofuel_option': 3,
                 'biofuel_percentage': 0,
@@ -582,14 +585,14 @@ def calculate_eu_fuel_compliance(dieselConsumption, methanolConsumption):
             # Validate fuel data
             validation = emission_calculator.validate_fuel_data(emission_fuel_data)
             if not validation['valid']:
-                # print(f"Invalid fuel data for emission calculation: {validation['error']}")  
+                print(f"Invalid fuel data for emission calculation: {validation['error']}")  
                 return {
                     "emission": {
                         "total_co2": 0,
                         "penalty": 0
                     }
                 }
-            
+        
             # Run Phase 2 emission calculation (includes both phase 1 and 2)
             emission_results = emission_calculator.calculate_emissions_phase2(emission_fuel_data, target_year=2025)
             
@@ -632,14 +635,17 @@ def calculate_eu_fuel_compliance(dieselConsumption, methanolConsumption):
             # print(f"---Penalty: EUR {compliance_results['penalty_eur']:.2f}")
             
         except Exception as e:
-            # print(f"Emission calculation failed: {str(e)}")  # Disabled
+            print(f"Emission calculation failed: {str(e)}")  # Disabled
             # Continue with fuel consumption results but no emissions
             pass  # Silent fail, error will be shown in main output
             
     return {
         "emission": {
             "total_co2": compliance_results.get('total_ghg_emission_tonnes', 0) if compliance_results else 0,
-            "penalty": compliance_results.get('penalty_eur', 0) if compliance_results else 0
+            "penalty": compliance_results.get('penalty_eur', 0) if compliance_results else 0,
+            "total_tco2eq":total_emission_tco2eq,
+            "breakdown": emission_breakdown,
+            "compliance":compliance_results
         }
     }
 

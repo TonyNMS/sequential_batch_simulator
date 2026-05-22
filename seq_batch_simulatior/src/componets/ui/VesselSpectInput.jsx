@@ -28,9 +28,9 @@ const VesselSpectIput =()=>{
       const taskName = taskNameRef.current?.value?.trim() || "DefaultTask";
       const weightLimit = weightLimitRef.current?.value || "600000";
       const volumeLimit = volumeLimitRef.current?.value || "600000";
-      const dieTankVol = dieTankVolRef.current?.value || "230236";
-      const methTankVol = methTankVolRef.current?.value || "230236";
-      const hydroTankVol = hydroTankVolRef.current?.value || "230236";
+      const dieTankVol = dieTankVolRef.current?.value || "230236000";
+      const methTankVol = methTankVolRef.current?.value || "230236000";
+      const hydroTankVol = hydroTankVolRef.current?.value || "230236000";
       const dieTankVolLim = dieTankVolLimRef.current?.value || "0.85";
       const methTankVolLim = methTankVolLimRef.current?.value || "0.85";
       const hydroTankVolLim = hydroTankVolLimRef.current?.value || "0.85";
@@ -71,17 +71,17 @@ const VesselSpectIput =()=>{
           <>
             <p>Confirm Diesel Fuel Mass </p>
             <div>
-               <input type="number" name="diesel_mass" ref={dieTankVolRef}  placeholder="Diesel Mass (Ton)" defaultValue="230236"/>
+               <input type="number" name="diesel_mass" ref={dieTankVolRef}  placeholder="Diesel Mass (Ton)" defaultValue="230236000"/>
                <input type="number" name="avalible_tank_percetage" ref={dieTankVolLimRef} placeholder="Diesel Tank Avalible %" defaultValue="0.85"/>
             </div>
             <p>Confirm Alterntive Fuel Mass</p>
             <div>
-                <input type="number" name="alt_fuel_mass" ref={methTankVolRef} placeholder="AltFuel Mass" defaultValue="230236"/>
+                <input type="number" name="alt_fuel_mass" ref={methTankVolRef} placeholder="AltFuel Mass" defaultValue="230236000"/>
                 <input type="number" name="avalible_tank_percetage" ref={methTankVolLimRef} placeholder="Altfuel Tank Avalible %" defaultValue="0.85"/>
             </div>
             <p>Confirm Hydrogen Fuel Tank Mass</p>
               <div>
-                <input type="number" name="hydro_fuel_mass" ref={hydroTankVolRef} placeholder="Hydrogen Mass" defaultValue="230236"/>
+                <input type="number" name="hydro_fuel_mass" ref={hydroTankVolRef} placeholder="Hydrogen Mass" defaultValue="230236000"/>
                 <input type="number" name="hydro_tank_percetage" ref = {hydroTankVolLimRef} placeholder="Hydrogen Tank Avalible %" defaultValue="0.85"/>
               </div>
 
